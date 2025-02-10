@@ -3,7 +3,7 @@
         <div class="flex flex-row md:flex-col flex-auto">
             <div class="w-1/2 md:w-full flex md:flex-col md:items-start items-center justify-center">
                 <div class="flex justify-between w-full items-center">
-                    <h6 class="font-bold hidden text-right md:inline-block">{{ __( 'Incomplete Orders' ) }}</h6>
+                    <h6 class="font-bold hidden text-right md:inline-block">Pesanan Belum Selesai</h6>
                     <div>
                         <ns-close-button class="border-success-secondary" @click="$emit( 'onRemove' )"></ns-close-button>
                     </div>
@@ -13,7 +13,7 @@
                 </h3>
             </div>
             <div class="w-1/2 md:w-full flex flex-col px-2 justify-end items-end">
-                <h6 class="font-bold inline-block text-right md:hidden">{{ __( 'Incomplete Orders' ) }}</h6>
+                <h6 class="font-bold inline-block text-right md:hidden">Pesanan Belum Selesai</h6>
                 <h4 class="text-xs text-right">+{{ nsCurrency( report.today_unpaid || 0 ) }} {{ __( 'Today' ) }}</h4>
             </div>
         </div>

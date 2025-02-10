@@ -196,17 +196,18 @@ export default {
         },
         provideReason( product ) {
             const promise   =   new Promise( ( resolve, reject ) => {
-                Popup.show( nsPromptPopupVue, {
-                    title: __( 'More Details' ),
-                    resolve,
-                    reject,
-                    message: __( 'Useful to describe better what are the reasons that leaded to this adjustment.' ),
-                    input: product.adjust_reason,
-                    onAction: ( input ) => {
-                        if ( input !== false ) {
-                            product.adjust_reason     =   input;
-                        }
+                Popup.show(nsPromptPopupVue, {
+                title: __( 'More Details' ),
+                resolve,
+                reject,
+                message: __( 'Useful to describe better what are the reasons that leaded to this adjustment.' ),
+                input: product.adjust_reason,
+                type: 'input', // tambahkan prop type dengan nilai 'input'
+                onAction: (input) => {
+                    if (input !== false) {
+                    product.adjust_reason = input;
                     }
+                }
                 });
             });
 
@@ -405,7 +406,7 @@ export default {
                                     <div class="text-xs cursor-pointer border-b border-dashed border-info-secondary py-1">
                                         <span class="text-xs">{{ __( 'Reason:' ) }}</span>&nbsp;
                                         <span v-if="product.adjust_reason">
-                                            {{ __( 'Provided' ) }}
+                                            {{ product.adjust_reason }}
                                         </span>
                                         <span v-else="product.adjust_reason">
                                             {{ __( 'Not Provided' ) }}

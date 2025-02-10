@@ -32,6 +32,7 @@ return [
         'km' => 'ភាសាខ្មែរ',
         'vi' => 'Vietnamese',
         'sq' => 'Shqiptare',
+        'id' => 'Bahasa Indonesia',
     ],
 
     /**

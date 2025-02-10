@@ -1544,7 +1544,7 @@ class OrdersService
          * let's save the order at
          * his initial state
          */
-        $order->customer_id = $fields['customer_id'];
+        $order->customer_id = $fields['customer_id'] ?? 58;
         $order->shipping = $this->currencyService->define( $fields[ 'shipping' ] ?? 0 )->toFloat(); // if shipping is not provided, we assume it's free
         $order->subtotal = $this->currencyService->define( $fields[ 'subtotal' ] ?? 0 )->toFloat() ?: $this->computeSubTotal( $fields, $order );
         $order->discount_type = $fields['discount_type'] ?? null;
@@ -1553,7 +1553,7 @@ class OrdersService
             $this->currencyService->define( $order->discount_type === 'flat' && isset( $fields['discount'] ) ? $fields['discount'] : 0 )->toFloat()
         ) ?: ( $order->discount_type === 'percentage' ? $this->computeOrderDiscount( $order, $fields ) : 0 );
         $order->total = $this->currencyService->define( $fields[ 'total' ] ?? 0 )->toFloat() ?: $this->computeTotal( $fields, $order );
-        $order->type = $fields['type']['identifier'];
+        $order->type = $fields['type']['identifier'] ?? 'takeaway';
         $order->final_payment_date = isset( $fields['final_payment_date' ] ) ? Carbon::parse( $fields['final_payment_date' ] )->format( 'Y-m-d h:m:s' ) : null; // when the order is not saved as laid away
         $order->total_instalments = $fields[ 'total_instalments' ] ?? 0;
         $order->register_id = $fields[ 'register_id' ] ?? null;

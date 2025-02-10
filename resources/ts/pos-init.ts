@@ -1869,7 +1869,7 @@ export class POS {
         const queues    =   nsHooks.applyFilters( 'ns-pay-queue', [
             ProductsQueue,
             CustomerQueue,
-            TypeQueue,
+            // TypeQueue,
             PaymentQueue
         ]);
 

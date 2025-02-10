@@ -1,7 +1,7 @@
 <template>
     <div class="w-95vw flex flex-col h-95vh shadow-lg md:w-3/5-screen lg:w-2/5-screen md:h-3/5-screen ns-box">
         <div class="header ns-box-header border-b flex justify-between p-2 items-center">
-            <h3>{{ __( 'Product / Service' ) }}</h3>
+            <h3>{{ __( 'Tambah Jasa' ) }}</h3>
             <div>
                 <ns-close-button @click="close()"></ns-close-button>
             </div>
@@ -127,14 +127,21 @@ export default {
                             field.value = this.options.tax_type || 'inclusive';
                         }
 
-                        if ( field.name === 'unit_id' ) {
-                            field.value     =   this.options.ns_pos_quick_product_default_unit;
-                            field.options   =   result[0].map( unit => {
+                        if (field.name === 'unit_id') {
+                            field.options = result[0].map(unit => {
                                 return {
                                     label: unit.name,
                                     value: unit.id,
                                 }
-                            })
+                            });
+
+                            // Set default unit to ID 10 or unit with name 'Porsi'
+                            const defaultUnit = result[0].find(unit => 
+                                unit.name.toLowerCase() === 'porsi'
+                            );
+
+                            field.value = defaultUnit ? defaultUnit.id : 
+                                        this.options.ns_pos_quick_product_default_unit;
                         }
                     });
 
@@ -172,38 +179,16 @@ export default {
                     label: __( 'Name' ),
                     name: 'name',
                     type: 'text',
-                    description: __( 'Provide a unique name for the product.' ),
+                    value: 'Jasa Masak/Seduh',
+                    // description: __( 'Provide a unique name for the product.' ),
                     validation: 'required',
-                }, {
-                    label: __( 'Product Type' ),
-                    name: 'product_type',
-                    type: 'select',
-                    description: __( 'Define the product type.' ),
-                    options: [{
-                        label: __( 'Normal' ),
-                        value: 'product',
-                    }, {
-                        label: __( 'Dynamic' ),
-                        value: 'dynamic',
-                    }],
-                    value: 'product',
-                    validation: 'required',
-                }, {
-                    label: __( 'Rate' ),
-                    name: 'rate',
-                    type: 'text',
-                    description: __( 'In case the product is computed based on a percentage, define the rate here.' ),
-                    validation: 'required',
-                    show( form ) {
-                        return form.product_type === 'dynamic';
-                    }
                 }, {
                     label: __( 'Unit Price' ),
                     name: 'unit_price',
                     type: 'text',
                     description: __( 'Define what is the sale price of the item.' ),
                     validation: '',
-                    value: 0,
+                    value: 1000,
                     show( form ) {
                         return form.product_type === 'product';
                     }
@@ -229,6 +214,29 @@ export default {
                     show( form ) {
                         return form.product_type === 'product';
                     }                  
+                }, {
+                    label: __( 'Product Type' ),
+                    name: 'product_type',
+                    type: 'select',
+                    description: __( 'Define the product type.' ),
+                    options: [{
+                        label: __( 'Normal' ),
+                        value: 'product',
+                    }, {
+                        label: __( 'Dynamic' ),
+                        value: 'dynamic',
+                    }],
+                    value: 'product',
+                    validation: 'required',
+                }, {
+                    label: __( 'Rate' ),
+                    name: 'rate',
+                    type: 'text',
+                    description: __( 'In case the product is computed based on a percentage, define the rate here.' ),
+                    validation: 'required',
+                    show( form ) {
+                        return form.product_type === 'dynamic';
+                    }
                 }, {
                     label: __( 'Tax Type' ),
                     name: 'tax_type',

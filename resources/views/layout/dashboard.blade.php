@@ -113,7 +113,7 @@ if ( Auth::check() ) {
                             @if ( ns()->option->get( 'ns_store_rectangle_logo' ) )
                             <img src="{{ ns()->option->get( 'ns_store_rectangle_logo' ) }}" class="w-11/12" alt="logo"/>
                             @else
-                            <h1 class="font-black text-transparent bg-clip-text bg-gradient-to-b from-blue-200 to-indigo-400 text-3xl">NexoPOS</h1>
+                            <h1 class="font-black text-transparent bg-clip-text bg-gradient-to-b from-blue-200 to-indigo-400 text-3xl">CJFI-POS</h1>
                             @endif
                         </div>
                         <ul>
