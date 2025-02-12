@@ -230,10 +230,10 @@ export default {
                 <div class="h-16 hidden lg:block"></div>
                 <ul class="hidden lg:block">
                     <li @click="select( payment )" v-for="payment of paymentsType" :class="payment.selected && ! showPayment ? 'ns-visible' : ''" :key="payment.identifier" class="cursor-pointer ns-payment-gateway py-2 px-3">{{ payment.label }}</li>
-                    <li v-if="paymentsType.length > 0" @click="showPayment = true" :class="showPayment ? 'ns-visible' : ''" class="cursor-pointer py-2 px-3 ns-payment-list border-t mt-4 flex items-center justify-between">
+                    <!-- <li v-if="paymentsType.length > 0" @click="showPayment = true" :class="showPayment ? 'ns-visible' : ''" class="cursor-pointer py-2 px-3 ns-payment-list border-t mt-4 flex items-center justify-between">
                         <span>{{ __( 'Payment List' ) }}</span>
                         <span class="px-2 rounded-full h-8 w-8 flex items-center justify-center ns-label">{{ order.payments.length }}</span>
-                    </li> 
+                    </li>  -->
                 </ul>
                 <ns-close-button class="lg:hidden" @click="closePopup()"></ns-close-button>
             </div>
@@ -302,7 +302,7 @@ export default {
                             <span ><i class="las la-cash-register"></i> {{ __( 'Submit Payment' ) }}</span>
                         </ns-button>
                         <div v-if="order.tendered < order.total" class="flex -mx-2">
-                            <div class="px-2">
+                            <!-- <div class="px-2">
                                 <ns-button v-if="order.tendered === 0" @click="submitOrder({ payment_status: 'unpaid' })" :type="order.tendered >= order.total ? 'success' : 'info'">
                                     <span><i class="las la-bookmark"></i> {{ __( 'Layaway' ) }} &mdash; {{ nsCurrency( expectedPayment ) }}</span>
                                 </ns-button>                         
@@ -314,7 +314,7 @@ export default {
                                 <ns-button @click="submiAsUnpaid()" :type="'info'">
                                     <span><i class="las la-hands-helping"></i> {{ __( 'Save As Unpaid' ) }}</span>
                                 </ns-button>                         
-                            </div>
+                            </div> -->
                         </div>
                     </div>
                 </div>

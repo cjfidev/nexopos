@@ -335,7 +335,7 @@ class OrderCrud extends CrudService
                 identifier: 'code',
                 width: '170px'
             ),
-            CrudTable::column( label: __( 'Type' ), identifier: 'type', width: '100px' ),
+            // CrudTable::column( label: __( 'Type' ), identifier: 'type', width: '100px' ),
             CrudTable::column( label: __( 'Customer' ), identifier: 'customer_first_name', width: '100px' ),
             CrudTable::column( label: __( 'Delivery' ), identifier: 'delivery_status', width: '150px' ),
             CrudTable::column( label: __( 'Payment' ), identifier: 'payment_status', width: '150px' ),

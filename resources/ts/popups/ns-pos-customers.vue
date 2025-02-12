@@ -108,9 +108,9 @@
                                                                             <div class="md:px-2 flex items-start w-full md:w-1/4">
                                                                                 <small>{{ __( 'Status' ) }}: {{ order.human_status }}</small>
                                                                             </div>
-                                                                            <div class="md:px-2 flex items-start w-full md:w-1/4">
+                                                                            <!-- <div class="md:px-2 flex items-start w-full md:w-1/4">
                                                                                 <small>{{ __( 'Delivery' ) }}: {{ order.human_delivery_status }}</small>
-                                                                            </div>
+                                                                            </div> -->
                                                                         </div>
                                                                     </div>
                                                                 </td>

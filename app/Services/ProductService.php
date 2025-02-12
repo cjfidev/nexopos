@@ -793,31 +793,70 @@ class ProductService
     /**
      * Compute cogs for the provided product and unit.
      */
-    public function computeCogs( ?Product $product = null, ?Unit $unit = null, ?ProductUnitQuantity $productUnitQuantity = null ): ?ProductUnitQuantity
+    // public function computeCogs( ?Product $product = null, ?Unit $unit = null, ?ProductUnitQuantity $productUnitQuantity = null ): ?ProductUnitQuantity
+    // {
+    //     $unit_id = $productUnitQuantity->unit_id ?? $unit->id;
+    //     $product_id = $productUnitQuantity->product_id ?? $product->id;
+
+    //     $productHistories = ProductHistory::where( 'unit_id', $unit_id )->where( 'product_id', $product_id )
+    //         ->whereIn( 'operation_type', [
+    //             ProductHistory::ACTION_CONVERT_IN,
+    //             ProductHistory::ACTION_STOCKED,
+    //             // we might need to consider futher conversion option.
+    //         ] )
+    //         ->get();
+
+    //     $totalQuantities = $productHistories->map( fn( $productHistory ) => $productHistory->quantity )->sum();
+    //     $sums = $productHistories->map( fn( $productHistory ) => $productHistory->total_price )->sum();
+
+    //     if ( $sums > 0 && $totalQuantities > 0 ) {
+    //         $cogs = ns()->currency->define( $sums )->divideBy( $totalQuantities )->toFloat();
+
+    //         $productUnitQuantity = $productUnitQuantity ?: ProductUnitQuantity::where( 'unit_id', $unit_id )
+    //             ->where( 'product_id', $product_id )
+    //             ->first();
+
+    //         if ( $productUnitQuantity instanceof ProductUnitQuantity ) {
+    //             $productUnitQuantity->cogs = $cogs;
+    //             $productUnitQuantity->save();
+
+    //             return $productUnitQuantity;
+    //         }
+    //     }
+
+    //     return null;
+    // }
+
+    public function computeCogs(?Product $product = null, ?Unit $unit = null, ?ProductUnitQuantity $productUnitQuantity = null): ?ProductUnitQuantity
     {
         $unit_id = $productUnitQuantity->unit_id ?? $unit->id;
         $product_id = $productUnitQuantity->product_id ?? $product->id;
 
-        $productHistories = ProductHistory::where( 'unit_id', $unit_id )->where( 'product_id', $product_id )
-            ->whereIn( 'operation_type', [
+        // Ambil stock yang tersedia sebelum pembelian terbaru
+        $currentStock = ProductUnitQuantity::where('unit_id', $unit_id)
+            ->where('product_id', $product_id)
+            ->first();
+
+        // Ambil riwayat pembelian terbaru
+        $latestProcurement = ProductHistory::where('unit_id', $unit_id)
+            ->where('product_id', $product_id)
+            ->whereIn('operation_type', [
                 ProductHistory::ACTION_CONVERT_IN,
                 ProductHistory::ACTION_STOCKED,
-                // we might need to consider futher conversion option.
-            ] )
-            ->get();
+            ])
+            ->orderBy('created_at', 'desc')
+            ->first();
 
-        $totalQuantities = $productHistories->map( fn( $productHistory ) => $productHistory->quantity )->sum();
-        $sums = $productHistories->map( fn( $productHistory ) => $productHistory->total_price )->sum();
+        if ($currentStock && $latestProcurement) {
+            $totalQuantities = $currentStock->quantity + $latestProcurement->quantity;
+            $totalPrices = ($currentStock->cogs * $currentStock->quantity) + $latestProcurement->total_price;
 
-        if ( $sums > 0 && $totalQuantities > 0 ) {
-            $cogs = ns()->currency->define( $sums )->divideBy( $totalQuantities )->toFloat();
+            if ($totalQuantities > 0) {
+                $cogs = ns()->currency->define($totalPrices)->divideBy($totalQuantities)->toFloat();
 
-            $productUnitQuantity = $productUnitQuantity ?: ProductUnitQuantity::where( 'unit_id', $unit_id )
-                ->where( 'product_id', $product_id )
-                ->first();
-
-            if ( $productUnitQuantity instanceof ProductUnitQuantity ) {
+                $productUnitQuantity = $productUnitQuantity ?: $currentStock;
                 $productUnitQuantity->cogs = $cogs;
+                // $productUnitQuantity->quantity = $totalQuantities;
                 $productUnitQuantity->save();
 
                 return $productUnitQuantity;

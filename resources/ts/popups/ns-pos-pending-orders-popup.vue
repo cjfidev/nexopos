@@ -16,22 +16,22 @@
                         @proceedOpenOrder="proceedOpenOrder( $event )">
                     </ns-pos-pending-orders>
                 </ns-tabs-item>
-                <ns-tabs-item identifier="ns.unpaid-orders" :label="__( 'Unpaid' )" padding="p-0" class="flex flex-col overflow-hidden">
+                <!-- <ns-tabs-item identifier="ns.unpaid-orders" :label="__( 'Unpaid' )" padding="p-0" class="flex flex-col overflow-hidden">
                     <ns-pos-pending-orders :orders="orders" 
                         @searchOrder="searchOrder( $event )"
                         @previewOrder="previewOrder( $event )"
                         @printOrder="printOrder( $event )"
                         @proceedOpenOrder="proceedOpenOrder( $event )">
                     </ns-pos-pending-orders>
-                </ns-tabs-item>
-                <ns-tabs-item identifier="ns.partially-paid-orders" :label="__( 'Partially Paid' )" padding="p-0" class="flex flex-col overflow-hidden">
+                </ns-tabs-item> -->
+                <!-- <ns-tabs-item identifier="ns.partially-paid-orders" :label="__( 'Partially Paid' )" padding="p-0" class="flex flex-col overflow-hidden">
                     <ns-pos-pending-orders :orders="orders" 
                         @searchOrder="searchOrder( $event )"
                         @previewOrder="previewOrder( $event )"
                         @printOrder="printOrder( $event )"
                         @proceedOpenOrder="proceedOpenOrder( $event )">
                     </ns-pos-pending-orders>
-                </ns-tabs-item>
+                </ns-tabs-item> -->
             </ns-tabs>
         </div>
         <div class="p-2 flex justify-between ns-box-footer border-t">

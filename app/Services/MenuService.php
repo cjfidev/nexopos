@@ -87,26 +87,26 @@ class MenuService
                         'permissions' => [ 'nexopos.create.customers-groups' ],
                         'href' => ns()->url( '/dashboard/customers/groups/create' ),
                     ],
-                    'list-reward-system' => [
-                        'label' => __( 'Reward Systems' ),
-                        'permissions' => [ 'nexopos.read.rewards' ],
-                        'href' => ns()->url( '/dashboard/customers/rewards-system' ),
-                    ],
-                    'create-reward-system' => [
-                        'label' => __( 'Create Reward' ),
-                        'permissions' => [ 'nexopos.create.rewards' ],
-                        'href' => ns()->url( '/dashboard/customers/rewards-system/create' ),
-                    ],
-                    'list-coupons' => [
-                        'label' => __( 'List Coupons' ),
-                        'permissions' => [ 'nexopos.read.coupons' ],
-                        'href' => ns()->url( '/dashboard/customers/coupons' ),
-                    ],
-                    'create-coupons' => [
-                        'label' => __( 'Create Coupon' ),
-                        'permissions' => [ 'nexopos.create.coupons' ],
-                        'href' => ns()->url( '/dashboard/customers/coupons/create' ),
-                    ],
+                    // 'list-reward-system' => [
+                    //     'label' => __( 'Reward Systems' ),
+                    //     'permissions' => [ 'nexopos.read.rewards' ],
+                    //     'href' => ns()->url( '/dashboard/customers/rewards-system' ),
+                    // ],
+                    // 'create-reward-system' => [
+                    //     'label' => __( 'Create Reward' ),
+                    //     'permissions' => [ 'nexopos.create.rewards' ],
+                    //     'href' => ns()->url( '/dashboard/customers/rewards-system/create' ),
+                    // ],
+                    // 'list-coupons' => [
+                    //     'label' => __( 'List Coupons' ),
+                    //     'permissions' => [ 'nexopos.read.coupons' ],
+                    //     'href' => ns()->url( '/dashboard/customers/coupons' ),
+                    // ],
+                    // 'create-coupons' => [
+                    //     'label' => __( 'Create Coupon' ),
+                    //     'permissions' => [ 'nexopos.create.coupons' ],
+                    //     'href' => ns()->url( '/dashboard/customers/coupons/create' ),
+                    // ],
                 ],
             ],
             'providers' => [
@@ -191,11 +191,11 @@ class MenuService
                         'permissions' => [ 'nexopos.read.products' ],
                         'href' => ns()->url( '/dashboard/products' ),
                     ],
-                    'create-products' => [
-                        'label' => __( 'Create Product' ),
-                        'permissions' => [ 'nexopos.create.products' ],
-                        'href' => ns()->url( '/dashboard/products/create' ),
-                    ],
+                    // 'create-products' => [
+                    //     'label' => __( 'Create Product' ),
+                    //     'permissions' => [ 'nexopos.create.products' ],
+                    //     'href' => ns()->url( '/dashboard/products/create' ),
+                    // ],
                     'labels-printing' => [
                         'label' => __( 'Print Labels' ),
                         'href' => ns()->url( '/dashboard/products/print-labels' ),
@@ -206,31 +206,31 @@ class MenuService
                         'permissions' => [ 'nexopos.read.categories' ],
                         'href' => ns()->url( '/dashboard/products/categories' ),
                     ],
-                    'create-categories' => [
-                        'label' => __( 'Create Category' ),
-                        'permissions' => [ 'nexopos.create.categories' ],
-                        'href' => ns()->url( '/dashboard/products/categories/create' ),
-                    ],
+                    // 'create-categories' => [
+                    //     'label' => __( 'Create Category' ),
+                    //     'permissions' => [ 'nexopos.create.categories' ],
+                    //     'href' => ns()->url( '/dashboard/products/categories/create' ),
+                    // ],
                     'units' => [
                         'label' => __( 'Units' ),
                         'permissions' => [ 'nexopos.read.products-units' ],
                         'href' => ns()->url( '/dashboard/units' ),
                     ],
-                    'create-units' => [
-                        'label' => __( 'Create Unit' ),
-                        'permissions' => [ 'nexopos.create.products-units' ],
-                        'href' => ns()->url( '/dashboard/units/create' ),
-                    ],
+                    // 'create-units' => [
+                    //     'label' => __( 'Create Unit' ),
+                    //     'permissions' => [ 'nexopos.create.products-units' ],
+                    //     'href' => ns()->url( '/dashboard/units/create' ),
+                    // ],
                     'unit-groups' => [
                         'label' => __( 'Unit Groups' ),
                         'permissions' => [ 'nexopos.read.products-units' ],
                         'href' => ns()->url( '/dashboard/units/groups' ),
                     ],
-                    'create-unit-groups' => [
-                        'label' => __( 'Create Unit Groups' ),
-                        'permissions' => [ 'nexopos.create.products-units' ],
-                        'href' => ns()->url( '/dashboard/units/groups/create' ),
-                    ],
+                    // 'create-unit-groups' => [
+                    //     'label' => __( 'Create Unit Groups' ),
+                    //     'permissions' => [ 'nexopos.create.products-units' ],
+                    //     'href' => ns()->url( '/dashboard/units/groups/create' ),
+                    // ],
                     'stock-adjustment' => [
                         'label' => __( 'Stock Adjustment' ),
                         'permissions' => [ 'nexopos.make.products-adjustments' ],
@@ -243,53 +243,53 @@ class MenuService
                     ],
                 ],
             ],
-            'taxes' => [
-                'label' => __( 'Taxes' ),
-                'icon' => 'la-balance-scale-left',
-                'permissions' => [
-                    'nexopos.create.taxes',
-                    'nexopos.read.taxes',
-                    'nexopos.update.taxes',
-                    'nexopos.delete.taxes',
-                ],
-                'childrens' => [
-                    'taxes-groups' => [
-                        'label' => __( 'Taxes Groups' ),
-                        'permissions' => [ 'nexopos.read.taxes' ],
-                        'href' => ns()->url( '/dashboard/taxes/groups' ),
-                    ],
-                    'create-taxes-group' => [
-                        'label' => __( 'Create Tax Groups' ),
-                        'permissions' => [ 'nexopos.create.taxes' ],
-                        'href' => ns()->url( '/dashboard/taxes/groups/create' ),
-                    ],
-                    'taxes' => [
-                        'label' => __( 'Taxes' ),
-                        'permissions' => [ 'nexopos.read.taxes' ],
-                        'href' => ns()->url( '/dashboard/taxes' ),
-                    ],
-                    'create-tax' => [
-                        'label' => __( 'Create Tax' ),
-                        'permissions' => [ 'nexopos.create.taxes' ],
-                        'href' => ns()->url( '/dashboard/taxes/create' ),
-                    ],
-                ],
-            ],
-            'modules' => [
-                'label' => __( 'Modules' ),
-                'icon' => 'la-plug',
-                'permissions' => [ 'manage.modules' ],
-                'childrens' => [
-                    'modules' => [
-                        'label' => __( 'List' ),
-                        'href' => ns()->url( '/dashboard/modules' ),
-                    ],
-                    'upload-module' => [
-                        'label' => __( 'Upload Module' ),
-                        'href' => ns()->url( '/dashboard/modules/upload' ),
-                    ],
-                ],
-            ],
+            // 'taxes' => [
+            //     'label' => __( 'Taxes' ),
+            //     'icon' => 'la-balance-scale-left',
+            //     'permissions' => [
+            //         'nexopos.create.taxes',
+            //         'nexopos.read.taxes',
+            //         'nexopos.update.taxes',
+            //         'nexopos.delete.taxes',
+            //     ],
+            //     'childrens' => [
+            //         'taxes-groups' => [
+            //             'label' => __( 'Taxes Groups' ),
+            //             'permissions' => [ 'nexopos.read.taxes' ],
+            //             'href' => ns()->url( '/dashboard/taxes/groups' ),
+            //         ],
+            //         'create-taxes-group' => [
+            //             'label' => __( 'Create Tax Groups' ),
+            //             'permissions' => [ 'nexopos.create.taxes' ],
+            //             'href' => ns()->url( '/dashboard/taxes/groups/create' ),
+            //         ],
+            //         'taxes' => [
+            //             'label' => __( 'Taxes' ),
+            //             'permissions' => [ 'nexopos.read.taxes' ],
+            //             'href' => ns()->url( '/dashboard/taxes' ),
+            //         ],
+            //         'create-tax' => [
+            //             'label' => __( 'Create Tax' ),
+            //             'permissions' => [ 'nexopos.create.taxes' ],
+            //             'href' => ns()->url( '/dashboard/taxes/create' ),
+            //         ],
+            //     ],
+            // ],
+            // 'modules' => [
+            //     'label' => __( 'Modules' ),
+            //     'icon' => 'la-plug',
+            //     'permissions' => [ 'manage.modules' ],
+            //     'childrens' => [
+            //         'modules' => [
+            //             'label' => __( 'List' ),
+            //             'href' => ns()->url( '/dashboard/modules' ),
+            //         ],
+            //         'upload-module' => [
+            //             'label' => __( 'Upload Module' ),
+            //             'href' => ns()->url( '/dashboard/modules/upload' ),
+            //         ],
+            //     ],
+            // ],
             'users' => [
                 'label' => __( 'Users' ),
                 'icon' => 'la-users',
