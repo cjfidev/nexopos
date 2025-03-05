@@ -47,7 +47,7 @@
                             <div class="ns-button" v-if="options.ns_pos_quick_product === 'yes'">
                                 <button @click="openAddQuickProduct()" class="w-full h-10 px-3 outline-none flex items-center">
                                     <i class="las la-plus"></i>
-                                    <span class="ml-1 hidden md:inline-block">{{ __( 'Jasa' ) }}</span>
+                                    <span class="ml-1 hidden md:inline-block">{{ __( 'Service' ) }}</span>
                                 </button>
                             </div>
                             <hr class="h-10" style="width: 1px">
@@ -137,7 +137,7 @@
                             </tr>
                             <tr>
                                 <td width="200" class="border p-2">
-                                    <a @click="openOrderType()" class="cursor-pointer outline-none border-dashed py-1 border-b border-info-primary text-sm">{{ __( 'Type' ) }}: {{ selectedType }}</a>
+                                    <!-- <a @click="openOrderType()" class="cursor-pointer outline-none border-dashed py-1 border-b border-info-primary text-sm">{{ __( 'Type' ) }}: {{ selectedType }}</a> -->
                                 </td>
                                 <td width="200" class="border p-2">
                                     <span>{{ __( 'Discount' ) }}</span>

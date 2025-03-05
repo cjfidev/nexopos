@@ -6,19 +6,7 @@
             </div>
             <div class="px-2">
                 <ns-field :field="endDateField"></ns-field>
-            </div>
-            <div class="px-2">
-                <button @click="loadReport()" class="rounded flex justify-between bg-input-background hover:bg-input-button-hover shadow py-1 items-center text-primary px-2">
-                    <i class="las la-sync-alt text-xl"></i>
-                    <span class="pl-2">{{ __( 'Load' ) }}</span>
-                </button>
-            </div>
-            <div class="px-2">
-                <button @click="printSaleReport()" class="rounded flex justify-between bg-input-background hover:bg-input-button-hover shadow py-1 items-center text-primary px-2">
-                    <i class="las la-print text-xl"></i>
-                    <span class="pl-2">{{ __( 'Print' ) }}</span>
-                </button>
-            </div>
+            </div>            
             <div class="px-2">
                 <button @click="selectCategories()" class="rounded flex justify-between bg-input-background hover:bg-input-button-hover shadow py-1 items-center text-primary px-2">
                     <i class="las la-filter text-xl"></i>
@@ -29,6 +17,20 @@
                 <button @click="selectUnit()" class="rounded flex justify-between bg-input-background hover:bg-input-button-hover shadow py-1 items-center text-primary px-2">
                     <i class="las la-filter text-xl"></i>
                     <span class="pl-2">{{ __( 'Unit' ) }}: {{ unitNames || __( 'All Units' ) }}</span>
+                </button>
+            </div>
+            <div class="px-2">
+                <div class="ns-button success">
+                    <button @click="loadReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
+                        <i class="las la-sync-alt text-xl"></i>
+                        <span class="pl-2">{{ __( 'Load' ) }}</span>
+                    </button>
+                </div>                
+            </div>
+            <div class="px-2">
+                <button @click="printSaleReport()" class="rounded flex justify-between bg-input-background hover:bg-input-button-hover shadow py-1 items-center text-primary px-2">
+                    <i class="las la-print text-xl"></i>
+                    <span class="pl-2">{{ __( 'Print' ) }}</span>
                 </button>
             </div>
         </div>

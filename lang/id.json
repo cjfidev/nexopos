@@ -1255,7 +1255,7 @@
     "Create Unit": "Buat Unit",
     "Unit Groups": "Grup Unit",
     "Create Unit Groups": "Buat Grup Unit",
-    "Stock Flow Records": "Catatan Aliran Stok",
+    "Stock Flow Records": "Catatan Riwayat Stok",
     "Taxes Groups": "Grup Pajak",
     "Create Tax Groups": "Buat Grup Pajak",
     "Create Tax": "Buat Pajak",
@@ -2866,5 +2866,6 @@
     "This coupon requires products that aren\\'t available on the cart at the moment.": "Kupon ini membutuhkan produk yang tidak tersedia di keranjang saat ini.",
     "This coupon requires products that belongs to specific categories that aren\\'t included at the moment.": "Kupon ini membutuhkan produk yang termasuk dalam kategori tertentu yang tidak termasuk saat ini.",
     "No rewards available the selected customer...": "Tidak ada hadiah yang tersedia untuk pelanggan yang dipilih...",
-    "Your system doesn\\'t have any valid Payment Type. Consider creating one and try again.": "Sistem Anda tidak memiliki Jenis Pembayaran yang valid. Pertimbangkan untuk membuat satu dan coba lagi."
+    "Your system doesn\\'t have any valid Payment Type. Consider creating one and try again.": "Sistem Anda tidak memiliki Jenis Pembayaran yang valid. Pertimbangkan untuk membuat satu dan coba lagi.",
+    "Service": "Jasa"
 }

@@ -92,15 +92,15 @@
                     <a class="border-b border-dashed border-info-primary" :href="systemUrls.customer_edit_url.replace( '#customer', order.customer.id )" target="_blank" rel="noopener noreferrer">{{ order.customer.first_name }} {{ order.customer.last_name }}</a>
                 </div>
             </div>
-            <div class="mb-2 p-2 flex justify-between items-start elevation-surface border">
+            <!-- <div class="mb-2 p-2 flex justify-between items-start elevation-surface border">
                 <div>
                     <h4 class="text-semibold text-primary">
                         <span>{{ __( 'Type' ) }}</span>
                     </h4>
                 </div>
                 <div class="font-semibold text-secondary">{{ labels.getTypeLabel( order.type ) }}</div>
-            </div>
-            <div class="mb-2 p-2 flex justify-between items-start elevation-surface border">
+            </div> -->
+            <!-- <div class="mb-2 p-2 flex justify-between items-start elevation-surface border">
                 <div>
                     <h4 class="text-semibold text-primary">
                         <span>{{ __( 'Delivery Status' ) }}</span>
@@ -125,7 +125,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <div class="mb-2 p-2 flex flex-col md:flex-row justify-between items-center elevation-surface border">
                 <div>
                     <h4 class="text-semibold text-primary">
@@ -174,12 +174,12 @@
                 <div class="font-semibold text-secondary">{{ nsCurrency( product.total_price ) }}</div>
             </div>
 
-            <div class="mb-2">
+            <!-- <div class="mb-2">
                 <h3 class="font-semibold text-secondary pb-2 border-b border-info-primary flex justify-between">
                     <span>{{ __( 'Refunded Products' ) }}</span>
                     <a href="javascript:void(0)" @click="openRefunds()" class="border-b border-info-primary border-dashed">{{ __( 'All Refunds' ) }}</a>
                 </h3>
-            </div>
+            </div> -->
             <div :key="index" v-for="(product, index) of order.refunded_products" class="p-2 flex justify-between items-start elevation-surface border  mb-6">
                 <div>
                     <h4 class="text-semibold text-primary">{{ product.order_product.name }} (x{{ product.quantity }})</h4>

@@ -8,8 +8,8 @@
                 <ns-field :field="endDateField"></ns-field>
             </div>
             <div class="px-2" v-if="selectedCustomer">
-                <div class="ns-button">
-                    <button @click="handleSelectedCustomer( selectedCustomer )" class="rounded flex justify-between text-primary shadow py-1 items-center  px-2">
+                <div class="ns-button success">
+                    <button @click="handleSelectedCustomer( selectedCustomer )" class="rounded flex justify-between shadow py-1 items-center  px-2">
                         <i class="las la-sync-alt text-xl"></i>
                         <span class="pl-2">{{ __( 'Load' ) }}</span>
                     </button>

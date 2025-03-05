@@ -8,10 +8,12 @@
                 <ns-date-time-picker :field="endDateField"></ns-date-time-picker>
             </div>
             <div class="px-2">
-                <button @click="loadReport()" class="rounded flex justify-between bg-input-button shadow py-1 items-center text-primary px-2">
-                    <i :class="isLoading ? 'animate-spin' : ''" class="las la-sync-alt text-xl"></i>
-                    <span class="pl-2">{{ __( 'Load' ) }}</span>
-                </button>
+                <div class="ns-button success">
+                    <button @click="loadReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
+                        <i class="las la-sync-alt text-xl"></i>
+                        <span class="pl-2">{{ __( 'Load' ) }}</span>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="flex -mx-2">

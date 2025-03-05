@@ -1,22 +1,6 @@
 <template>
     <div id="report-section" class="px-4">
-        <div class="flex -mx-2">
-            <div class="px-2">
-                <div class="ns-button">
-                    <button @click="loadRelevantReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
-                        <i class="las la-sync-alt text-xl"></i>
-                        <span class="pl-2">{{ __( 'Load' ) }}</span>
-                    </button>
-                </div>
-            </div>
-            <div class="px-2">
-                <div class="ns-button">
-                    <button @click="printSaleReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
-                        <i class="las la-print text-xl"></i>
-                        <span class="pl-2">{{ __( 'Print' ) }}</span>
-                    </button>
-                </div>
-            </div>
+        <div class="flex -mx-2">            
             <div class="px-2">
                 <div class="ns-button">
                     <button @click="selectReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
@@ -38,6 +22,22 @@
                     <button @click="selectUnits()" class="rounded flex justify-between shadow py-1 items-center px-2">
                         <i class="las la-filter text-xl"></i>
                         <span class="pl-2">{{ __( 'Units' ) }} : {{ unitNames || __( 'All Units' ) }}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="px-2">
+                <div class="ns-button success">
+                    <button @click="loadRelevantReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
+                        <i class="las la-sync-alt text-xl"></i>
+                        <span class="pl-2">{{ __( 'Load' ) }}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="px-2">
+                <div class="ns-button">
+                    <button @click="printSaleReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
+                        <i class="las la-print text-xl"></i>
+                        <span class="pl-2">{{ __( 'Print' ) }}</span>
                     </button>
                 </div>
             </div>

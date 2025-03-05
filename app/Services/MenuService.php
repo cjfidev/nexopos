@@ -39,11 +39,11 @@ class MenuService
                         'href' => ns()->url( '/dashboard/orders' ),
                         'permissions' => [ 'nexopos.read.orders' ],
                     ],
-                    'payment-type' => [
-                        'label' => __( 'Payment Types' ),
-                        'href' => ns()->url( '/dashboard/orders/payments-types' ),
-                        'permissions' => [ 'nexopos.manage-payments-types' ],
-                    ],
+                    // 'payment-type' => [
+                    //     'label' => __( 'Payment Types' ),
+                    //     'href' => ns()->url( '/dashboard/orders/payments-types' ),
+                    //     'permissions' => [ 'nexopos.manage-payments-types' ],
+                    // ],
                 ],
             ],
             'medias' => [

@@ -15,9 +15,9 @@
                     <button :title="__( 'Search for products.' )" @click="openSearchPopup()" class="w-10 h-10 border-r  outline-none">
                         <i class="las la-search"></i>
                     </button>
-                    <button :title="__( 'Toggle merging similar products.' )" @click="posToggleMerge()" :class="settings.ns_pos_items_merge ? 'pos-button-clicked' : ''" class="outline-none w-10 h-10 border-r ">
+                    <!-- <button :title="__( 'Toggle merging similar products.' )" @click="posToggleMerge()" :class="settings.ns_pos_items_merge ? 'pos-button-clicked' : ''" class="outline-none w-10 h-10 border-r ">
                         <i class="las la-compress-arrows-alt"></i>
-                    </button>
+                    </button> -->
                     <button :title="__( 'Toggle auto focus.' )" @click="options.ns_pos_force_autofocus = ! options.ns_pos_force_autofocus" :class="options.ns_pos_force_autofocus ? 'pos-button-clicked' : ''" class="outline-none w-10 h-10 border-r ">
                         <i class="las la-barcode"></i>
                     </button>

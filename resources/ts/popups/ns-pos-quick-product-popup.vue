@@ -1,7 +1,7 @@
 <template>
     <div class="w-95vw flex flex-col h-95vh shadow-lg md:w-3/5-screen lg:w-2/5-screen md:h-3/5-screen ns-box">
         <div class="header ns-box-header border-b flex justify-between p-2 items-center">
-            <h3>{{ __( 'Tambah Jasa' ) }}</h3>
+            <h3>{{ __( 'Add Service' ) }}</h3>
             <div>
                 <ns-close-button @click="close()"></ns-close-button>
             </div>

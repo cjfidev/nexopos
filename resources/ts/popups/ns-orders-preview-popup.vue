@@ -177,9 +177,9 @@ export default {
                 <!-- End Refund -->
 
                 <!-- Refund -->
-                <ns-tabs-item :visible="! [ 'order_void', 'hold', 'refunded' ].includes( order.payment_status )" :label="__( 'Refund & Return' )" identifier="refund">
+                <!-- <ns-tabs-item :visible="! [ 'order_void', 'hold', 'refunded' ].includes( order.payment_status )" :label="__( 'Refund & Return' )" identifier="refund">
                     <ns-order-refund v-if="order" @loadTab="setActive( $event )" @changed="refresh()" :order="order"></ns-order-refund>
-                </ns-tabs-item>
+                </ns-tabs-item> -->
                 <!-- End Refund -->
 
                 <!-- Instalment -->

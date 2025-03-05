@@ -4,15 +4,7 @@
             <div class="px-2 flex -mx-2">
                 <div class="px-2">
                     <ns-field :field="datePicker"></ns-field>
-                </div>
-                <div class="px-2">
-                    <div class="ns-button">
-                        <button @click="loadReport()" class="rounded flex justify-between shadow py-1 items-center text-primary px-2">
-                            <i class="las la-sync-alt text-xl"></i>
-                            <span class="pl-2">{{ __( 'Load' ) }}</span>
-                        </button>
-                    </div>
-                </div>
+                </div>                
                 <div class="px-2">
                     <div class="ns-button">
                         <button @click="printSaleReport()" class="rounded flex justify-between shadow py-1 items-center text-primary px-2">
@@ -40,13 +32,21 @@
                     </div>
                 </div>
                 <div class="px-2">
+                    <div class="ns-button success">
+                        <button @click="loadReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
+                            <i class="las la-sync-alt text-xl"></i>
+                            <span class="pl-2">{{ __( 'Load' ) }}</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- <div class="px-2">
                     <div class="ns-button">
                         <button @click="generateReport()" class="rounded flex justify-between shadow py-1 items-center text-primary px-2">
                             <i class="las la-sync-alt"></i>
                             <span class="pl-2">{{ __( 'Generate Report' ) }}</span>
                         </button>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
         <div id="combined-report">

@@ -9,10 +9,12 @@
                 <input type="text" v-model="year" placeholder="{{ __( 'Year' ) }}" class="outline-none rounded border-gray-400 border-2 focus:border-blue-400 p-2">
             </div>
             <div class="px-2 flex">
-                <button @click="loadReport()" class="rounded flex justify-between bg-white shadow py-1 items-center text-gray-700 px-2">
-                    <i class="las la-sync-alt text-xl"></i>
-                    <span class="pl-2">{{ __( 'Load' ) }}</span>
-                </button>
+                <div class="ns-button success">
+                    <button @click="loadReport()" class="rounded flex justify-between shadow py-1 items-center px-2">
+                        <i class="las la-sync-alt text-xl"></i>
+                        <span class="pl-2">{{ __( 'Load' ) }}</span>
+                    </button>
+                </div>
             </div>
             <div class="px-2 flex">
                 <button @click="printSaleReport()" class="rounded flex justify-between bg-white shadow py-1 items-center text-gray-700 px-2">

@@ -1,5 +1,5 @@
 <template>
-    <div id="notificaton-wrapper">
+    <!-- <div id="notificaton-wrapper">
         <div id="notification-button" @click="visible = !visible" :class="visible ? 'panel-visible border-0 shadow-lg' : 'border panel-hidden'" class="hover:shadow-lg hover:border-opacity-0 rounded-full h-12 w-12 cursor-pointer font-bold text-2xl justify-center items-center flex">
             <div class="relative float-right" v-if="notifications.length > 0">
                 <div class="absolute -ml-6 -mt-8">
@@ -40,7 +40,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 </template>
 <script lang="ts">
 import { nsHttpClient, nsSnackBar } from '~/bootstrap';

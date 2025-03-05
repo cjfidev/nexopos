@@ -25,17 +25,19 @@ return [
             'value' => $procurement->invoice_date ?? ns()->date->now()->format( 'Y-m-d' ),
             'label' => __( 'Invoice Date' ),
             'description' => __( 'If you would like to define a custom invoice date.' ),
-        ], [
-            'type' => 'switch',
-            'name' => 'automatic_approval',
-            'value' => $procurement->automatic_approval ?? 1,
-            'options' => Helper::kvToJsOptions( [
-                0 => __( 'No' ),
-                1 => __( 'Yes' ),
-            ] ),
-            'label' => __( 'Automatic Approval' ),
-            'description' => __( 'Determine if the procurement should be marked automatically as approved once the Delivery Time occurs.' ),
-        ], [
+        ], 
+        // [
+        //     'type' => 'switch',
+        //     'name' => 'automatic_approval',
+        //     'value' => $procurement->automatic_approval ?? 1,
+        //     'options' => Helper::kvToJsOptions( [
+        //         0 => __( 'No' ),
+        //         1 => __( 'Yes' ),
+        //     ] ),
+        //     'label' => __( 'Automatic Approval' ),
+        //     'description' => __( 'Determine if the procurement should be marked automatically as approved once the Delivery Time occurs.' ),
+        // ], 
+        [
             'type' => 'select',
             'name' => 'delivery_status',
             'value' => $procurement->delivery_status ?? 'delivered',
