@@ -11,7 +11,7 @@ worker.log
 *.log
 *.ignore.*
 *.log.*
-modules/*
+#modules/*
 !modules/.temp
 modules/.temp/*
 !modules/index.html

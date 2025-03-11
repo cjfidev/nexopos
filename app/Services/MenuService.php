@@ -275,21 +275,21 @@ class MenuService
             //         ],
             //     ],
             // ],
-            // 'modules' => [
-            //     'label' => __( 'Modules' ),
-            //     'icon' => 'la-plug',
-            //     'permissions' => [ 'manage.modules' ],
-            //     'childrens' => [
-            //         'modules' => [
-            //             'label' => __( 'List' ),
-            //             'href' => ns()->url( '/dashboard/modules' ),
-            //         ],
-            //         'upload-module' => [
-            //             'label' => __( 'Upload Module' ),
-            //             'href' => ns()->url( '/dashboard/modules/upload' ),
-            //         ],
-            //     ],
-            // ],
+            'modules' => [
+                'label' => __( 'Modules' ),
+                'icon' => 'la-plug',
+                'permissions' => [ 'manage.modules' ],
+                'childrens' => [
+                    'modules' => [
+                        'label' => __( 'List' ),
+                        'href' => ns()->url( '/dashboard/modules' ),
+                    ],
+                    'upload-module' => [
+                        'label' => __( 'Upload Module' ),
+                        'href' => ns()->url( '/dashboard/modules/upload' ),
+                    ],
+                ],
+            ],
             'users' => [
                 'label' => __( 'Users' ),
                 'icon' => 'la-users',

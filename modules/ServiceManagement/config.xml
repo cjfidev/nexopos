@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<module>
+    <namespace>ServiceManagement</namespace>
+    <version>1.0</version>
+    <author>Mesa</author>
+    <name>Service Management</name>
+    <description>A module for managing and tracking services related to beverage preparation (e.g., coffee, tea) and instant meal preparation (e.g., instant noodles)</description>
+</module>

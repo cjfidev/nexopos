@@ -24,6 +24,7 @@
         </div>
     </div>
 </template>
+
 <script lang="ts">
 import { __ } from '~/libraries/lang';
 import FormValidation from '~/libraries/form-validation';
@@ -31,6 +32,7 @@ import popupResolver from '~/libraries/popup-resolver';
 import popupCloser from '~/libraries/popup-closer';
 import { forkJoin } from 'rxjs';
 import { nsSnackBar } from '~/bootstrap';
+import { nsHttpClient } from '~/bootstrap';
 
 declare const POS;
 
@@ -47,18 +49,17 @@ export default {
         },
 
         async addProduct() {
-            
-            const extractedFields   =   this.validation.extractFields( this.fields );
-            const fields =   this.fields.filter( field => typeof field.show === 'undefined' || ( typeof field.show === 'function' && field.show( extractedFields ) ) );
-            const valid =   this.validation.validateFields( fields );
+            const extractedFields = this.validation.extractFields( this.fields );
+            const fields = this.fields.filter( field => typeof field.show === 'undefined' || ( typeof field.show === 'function' && field.show( extractedFields ) ) );
+            const valid = this.validation.validateFields( fields );
 
             if ( ! valid ) {
                 return nsSnackBar.error( __( 'Unable to proceed. The form is not valid.' ) ).subscribe();
             }
 
-            let product       =   this.validation.extractFields( fields );
-            
-            product.$original   =   () => {
+            let product = this.validation.extractFields( fields );
+
+            product.$original = () => {
                 return {
                     stock_management: 'disabled',
                     category_id: 0,
@@ -69,108 +70,98 @@ export default {
             }
 
             if ( product.product_type === 'product' ) {
-                product.unit_name           =   this.units.filter( unit => unit.id === product.unit_id )[0].name;
-                product.quantity            =   parseFloat( product.quantity );
-                product.unit_price          =   parseFloat( product.unit_price );
-                product.mode                =   'custom';
-                product.price_with_tax      =   product.unit_price;
-                product.price_without_tax   =   product.unit_price;
-                product.tax_value           =   0;
+                product.unit_name = this.units.filter( unit => unit.id === product.unit_id )[0].name;
+                product.quantity = parseFloat( product.quantity );
+                product.unit_price = parseFloat( product.unit_price );
+                product.mode = 'custom';
+                product.price_with_tax = product.unit_price;
+                product.price_without_tax = product.unit_price;
+                product.tax_value = 0;
             } else {
-                product.unit_name   =   __( 'N/A' );
-                product.unit_price  =   0;
-                product.quantity    =   1; // it's always 1
+                product.unit_name = __( 'N/A' );
+                product.unit_price = 0;
+                product.quantity = 1; // it's always 1
             }
 
-            const quantities        =   await POS.defineQuantities( product, this.units );
-            product.$quantities     =   () => quantities;
+            const quantities = await POS.defineQuantities( product, this.units );
+            product.$quantities = () => quantities;
 
-            /**
-             * we initially need to compute the product
-             * tax before adding that to the cart.
-             */
-            product     =   POS.computeProductTax( product );
-            
+            // Compute product tax
+            product = POS.computeProductTax( product );
+
+            // Add to cart
             POS.addToCart( product );
 
             this.close();
         },
 
         loadData() {
-    this.loaded = false;
+            this.loaded = false;
 
-    forkJoin(
-        nsHttpClient.get('/api/units'),
-        nsHttpClient.get('/api/taxes/groups'),
-    ).subscribe({
-        next: (result) => {
-            this.units = result[0];
-            this.tax_groups = result[1];
+            forkJoin(
+                nsHttpClient.get( `/api/units` ),
+                nsHttpClient.get( `/api/taxes/groups` ),
+                nsHttpClient.get( `/api/services` ) // Ambil data layanan dari API
+            ).subscribe({
+                next: ( result ) => {
+                    this.units = result[0];
+                    this.tax_groups = result[1];
+                    const services = result[2]; // Data layanan
 
-            // Ambil data services
-            nsHttpClient.get('/api/services').subscribe({
-                next: (services) => {
-                    this.services = services;
-
-                    // Update fields dengan data services
-                    this.fields.filter(field => {
-                        if (field.name === 'name') {
-                            field.type = 'select'; // Ubah type menjadi select
-                            field.options = services.map(service => ({
+                    // Update fields dengan data layanan
+                    this.fields.filter( field => {
+                        if ( field.name === 'name' ) {
+                            field.type = 'select';
+                            field.options = services.map( service => ({
                                 label: service.service_name,
-                                value: service.service_name,
+                                value: service.id,
                                 data: service // Simpan data lengkap untuk digunakan di unit_price
                             }));
-                            field.value = services.length > 0 ? services[0].id : ''; // Set nilai default
+                            field.value = services.length > 0 ? services[0].id : '';
                         }
 
-                        if (field.name === 'unit_price') {
-                            // field.type = 'hidden'; // Sembunyikan field unit_price karena akan diisi otomatis
-                            field.value = services.length > 0 ? services[0].service_price : 0; // Set nilai default
+                        if ( field.name === 'unit_price' ) {
+                            field.type = 'hidden'; // Sembunyikan field unit_price karena akan diisi otomatis
+                            field.value = services.length > 0 ? services[0].service_price : 0;
                         }
 
-                        if (field.name === 'tax_group_id') {
-                            field.options = result[1].map(group => ({
+                        if ( field.name === 'tax_group_id' ) {
+                            field.options = result[1].map( group => ({
                                 label: group.name,
                                 value: group.id,
                             }));
 
-                            if (result[1].length > 0 && result[1][0].id !== undefined) {
+                            if ( result[1].length > 0 && result[1][0].id !== undefined ) {
                                 field.value = result[1][0].id || this.options.ns_pos_tax_group;
                             }
                         }
 
-                        if (field.name === 'tax_type') {
+                        if ( field.name === 'tax_type' ) {
                             field.value = this.options.tax_type || 'inclusive';
                         }
 
-                        if (field.name === 'unit_id') {
-                            field.options = result[0].map(unit => ({
+                        if ( field.name === 'unit_id' ) {
+                            field.options = result[0].map( unit => ({
                                 label: unit.name,
                                 value: unit.id,
                             }));
 
-                            const defaultUnit = result[0].find(unit => unit.name.toLowerCase() === 'porsi');
+                            const defaultUnit = result[0].find( unit => unit.name.toLowerCase() === 'porsi' );
                             field.value = defaultUnit ? defaultUnit.id : this.options.ns_pos_quick_product_default_unit;
                         }
                     });
 
                     this.buildForm();
                 },
-                error: (error) => {
-                    console.error('Error loading services:', error);
+                error: ( error ) => {
+                    nsSnackBar.error( __( 'An error occurred while loading data.' ) ).subscribe();
                 }
             });
         },
-        error: (error) => {
-            console.error('Error loading units or tax groups:', error);
-        }
-    });
-},
 
         buildForm() {
-            this.fields     =   this.validation.createFields( this.fields );
-            this.loaded     =   true;
+            this.fields = this.validation.createFields( this.fields );
+            this.loaded = true;
 
             setTimeout(() => {
                 this.$el.querySelector( '#name' ).select();
@@ -185,37 +176,35 @@ export default {
     data() {
         return {
             units: [],
-            services: [],
             options: POS.options.getValue(),
             tax_groups: [],
             loaded: false,
             validation: new FormValidation,
             fields: [
-            {
-                label: __( 'Service' ),
-                name: 'name',
-                type: 'select',
-                options: [], // Akan diisi dengan data dari API
-                validation: 'required',
-                description: __( 'Select a service.' ),
-                onChange: (value, field, form) => {
-                    const selectedService = field.options.find(option => option.value === value);
-                    if (selectedService) {
-                        console.log(selectedService);
-                        // Update unit_price berdasarkan layanan yang dipilih
-                        const unitPriceField = this.fields.find(f => f.name === 'unit_price');
-                        if (unitPriceField) {
-                            unitPriceField.value = selectedService.data.service_price;
+                {
+                    label: __( 'Service' ),
+                    name: 'name',
+                    type: 'select',
+                    options: [], // Akan diisi dengan data dari API
+                    validation: 'required',
+                    description: __( 'Select a service.' ),
+                    onChange: ( value, field, form ) => {
+                        const selectedService = field.options.find( option => option.value === value );
+                        if ( selectedService ) {
+                            // Update unit_price berdasarkan layanan yang dipilih
+                            const unitPriceField = this.fields.find( f => f.name === 'unit_price' );
+                            if ( unitPriceField ) {
+                                unitPriceField.value = selectedService.data.service_price;
+                            }
                         }
                     }
-                }
-            }, {
-                label: __( 'Unit Price' ),
-                name: 'unit_price',
-                // type: 'hidden', // Sembunyikan field karena akan diisi otomatis
-                validation: '',
-                // value: 1000, // Nilai default
-            },  {
+                }, {
+                    label: __( 'Unit Price' ),
+                    name: 'unit_price',
+                    type: 'hidden', // Sembunyikan field karena akan diisi otomatis
+                    validation: '',
+                    value: 0,
+                }, {
                     label: __( 'Quantity' ),
                     name: 'quantity',
                     type: 'text',
@@ -229,9 +218,7 @@ export default {
                     label: __( 'Unit' ),
                     name: 'unit_id',
                     type: 'select',
-                    options: [
-                        // ...
-                    ],
+                    options: [],
                     description: __( 'Assign a unit to the product.' ),
                     validation: '',  
                     show( form ) {
@@ -284,9 +271,7 @@ export default {
                     label: __( 'Tax Group' ),
                     name: 'tax_group_id',
                     type: 'select',
-                    options: [
-                        // ...
-                    ],
+                    options: [],
                     description: __( 'Choose the tax group that should apply to the item.' ),  
                     show( form ) {
                         return form.product_type === 'product';
