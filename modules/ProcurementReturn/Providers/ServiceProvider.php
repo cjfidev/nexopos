@@ -1,5 +1,5 @@
 <?php
-namespace Modules\ServiceManagement\Providers;
+namespace Modules\ProcurementReturn\Providers;
 
 use App\Classes\Hook;
 use App\Providers\AppServiceProvider;
@@ -11,10 +11,10 @@ class ServiceProvider extends AppServiceProvider
 
         Hook::addFilter( 'ns-dashboard-menus', function ( $menus ) {
             $menus = array_insert_before( $menus, 'modules', [
-                'service-menus' => [
-                    'label' => __( 'Service Management' ),
-                    'icon' => 'la-concierge-bell',
-                    'href' => ns()->url( '/dashboard/service-managements' ),
+                'procurements-returns-menus' => [
+                    'label' => __( 'Procurements Returns' ),
+                    'icon' => 'la-undo',
+                    'href' => ns()->url( '/dashboard/procurements-returns' ),
                 ]
             ]);
 
@@ -25,7 +25,7 @@ class ServiceProvider extends AppServiceProvider
     public function registerCrud( $identifier )
     {
         switch( $identifier ) {
-            case 'service-management.services': return ServiceCrud::class; 
+            case 'procurements-returns.returns': return ServiceCrud::class; 
             default: return $identifier; // required
         }
     }

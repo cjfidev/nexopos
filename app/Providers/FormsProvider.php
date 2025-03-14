@@ -25,6 +25,7 @@ use App\Fields\UnitsFields;
 use App\Fields\UnitsGroupsFields;
 use App\Forms\POSAddressesForm;
 use App\Forms\ProcurementForm;
+use App\Forms\ProcurementReturnForm;
 use App\Forms\UserProfileForm;
 use Illuminate\Support\ServiceProvider;
 use TorMorten\Eventy\Facades\Events as Hook;
@@ -55,6 +56,9 @@ class FormsProvider extends ServiceProvider
                     break;
                 case 'ns.procurement':
                     return new ProcurementForm;
+                    break;
+                case 'ns.procurement-return':
+                    return new ProcurementReturnForm;
                     break;
                 case 'ns.pos-addresses':
                     return new POSAddressesForm;

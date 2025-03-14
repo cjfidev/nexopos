@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<module>
+    <namespace>ProcurementReturn</namespace>
+    <version>1.0</version>
+    <author>Mesa</author>
+    <name>The Procurement Return</name>
+    <description>This module will help to maintain procurement returns.</description>
+</module>

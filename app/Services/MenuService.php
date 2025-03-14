@@ -348,6 +348,11 @@ class MenuService
                         'permissions' => [ 'nexopos.create.procurements' ],
                         'href' => ns()->url( '/dashboard/procurements/create' ),
                     ],
+                    'procurements-returns' => [
+                        'label' => __( 'Procurements Returns' ),
+                        'permissions' => [ 'nexopos.create.procurements' ],
+                        'href' => ns()->url( '/dashboard/procurements/returns/create' ),
+                    ],
                     'procurements-products' => [
                         'label' => __( 'Products' ),
                         'permissions' => [ 'nexopos.update.procurements' ],

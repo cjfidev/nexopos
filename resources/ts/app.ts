@@ -22,6 +22,7 @@ const nsReset                       =   defineAsyncComponent( () => import( './p
 const nsModules                     =   defineAsyncComponent( () => import( './pages/dashboard/modules.vue' ) );
 const nsPermissions                 =   defineAsyncComponent( () => import( './pages/dashboard/ns-permissions.vue' ) );
 const nsProcurement                 =   defineAsyncComponent( () => import( './pages/dashboard/procurements/ns-procurement.vue' ) );
+const nsProcurementReturn           =   defineAsyncComponent( () => import( './pages/dashboard/procurements/ns-procurement-return.vue' ) );
 const nsManageProducts              =   defineAsyncComponent( () => import( './pages/dashboard/procurements/manage-products.vue' ) );
 const nsProcurementInvoice          =   defineAsyncComponent( () => import( './pages/dashboard/procurements/ns-procurement-invoice.vue' ) );
 const nsNotifications               =   defineAsyncComponent( () => import( './pages/dashboard/ns-notifications.vue' ) );
@@ -63,6 +64,7 @@ const allComponents    =   Object.assign({
     nsPermissions,
     nsProcurement,
     nsProcurementInvoice,
+    nsProcurementReturn,
     nsMedia,
     nsTransaction,
     nsDashboard,

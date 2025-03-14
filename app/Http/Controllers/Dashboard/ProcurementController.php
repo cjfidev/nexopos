@@ -234,6 +234,15 @@ class ProcurementController extends DashboardController
     /**
      * Render a creation page for a procurement
      */
+    public function createProcurementReturn()
+    {
+        ns()->restrict( [ 'nexopos.create.procurements' ] );
+
+        return View::make( 'pages.dashboard.procurements-returns.create', Hook::filter( 'ns-create-procurement-labels', [
+            'title' => __( 'New Procurement Return' ),
+            'description' => __( 'Make a new procurement return.' ),
+        ] ) );
+    }
     public function createProcurement()
     {
         ns()->restrict( [ 'nexopos.create.procurements' ] );

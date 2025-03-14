@@ -16,7 +16,7 @@ import { nsPOSLoadingPopup } from '~/components/components';
 
 
 export default {
-    name: 'ns-procurement',
+    name: 'ns-procurement-return',
     mounted() {
         this.reloadEntities();
 
@@ -805,7 +805,7 @@ export default {
                                         <input
                                             v-model="searchValue"
                                             type="text" 
-                                            :placeholder="__( 'SKU, Barcode, Name' )"
+                                            :placeholder="__( 'SKU, Barcode, Namez' )"
                                             class="flex-auto text-primary outline-none h-10 px-2">
                                     </div>
                                     <div class="h-0">
