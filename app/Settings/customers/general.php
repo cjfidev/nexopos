@@ -41,6 +41,16 @@ return SettingForm::tab(
                 'no' => __( 'No' ),
             ] ),
         ),
+        FormInput::select(
+            label: __( 'Require Unique Customer No' ),
+            name: 'ns_customers_force_unique_customer_no',
+            value: ns()->option->get( 'ns_customers_force_unique_customer_no', 'no' ),
+            description: __( 'Every customer should have a unique customer number.' ),
+            options: Helper::kvToJsOptions( [
+                'yes' => __( 'Yes' ),
+                'no' => __( 'No' ),
+            ] ),
+        ),
         FormInput::searchSelect(
             label: __( 'Default Customer Account' ),
             name: 'ns_customers_default',

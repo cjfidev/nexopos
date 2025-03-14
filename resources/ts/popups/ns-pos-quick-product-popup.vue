@@ -37,6 +37,14 @@ declare const POS;
 export default {
     name: 'ns-pos-quick-product-popup',
     props: [ 'popup' ],
+    watch: {
+        // Watch perubahan form
+        'form.name': function(newVal, oldVal) {
+            if (newVal && newVal !== oldVal) {
+                this.updatePriceBasedOnServiceName(newVal);
+            }
+        }
+    },
     methods: {
         __,
         popupCloser,
@@ -95,86 +103,114 @@ export default {
 
             this.close();
         },
+        updatePriceBasedOnServiceName(serviceName) {
+            const selectedService = this.services.find(service => service.service_name === serviceName);
+            if (selectedService) {
+                // Cari dan update field unit_price
+                const unitPriceIndex = this.fields.findIndex(f => f.name === 'unit_price');
+                if (unitPriceIndex !== -1) {
+                    this.fields[unitPriceIndex].value = selectedService.service_price;
+                    // Force update jika diperlukan
+                    this.$forceUpdate();
+                }
+            }
+        },
 
         loadData() {
-    this.loaded = false;
+            this.loaded = false;
 
-    forkJoin(
-        nsHttpClient.get('/api/units'),
-        nsHttpClient.get('/api/taxes/groups'),
-    ).subscribe({
-        next: (result) => {
-            this.units = result[0];
-            this.tax_groups = result[1];
+            forkJoin(
+                nsHttpClient.get('/api/units'),
+                nsHttpClient.get('/api/taxes/groups'),
+            ).subscribe({
+                next: (result) => {
+                    this.units = result[0];
+                    this.tax_groups = result[1];
 
-            // Ambil data services
-            nsHttpClient.get('/api/services').subscribe({
-                next: (services) => {
-                    this.services = services;
+                    // Ambil data services
+                    nsHttpClient.get('/api/services').subscribe({
+                        next: (services) => {
+                            this.services = services;
 
-                    // Update fields dengan data services
-                    this.fields.filter(field => {
-                        if (field.name === 'name') {
-                            field.type = 'select'; // Ubah type menjadi select
-                            field.options = services.map(service => ({
-                                label: service.service_name,
-                                value: service.service_name,
-                                data: service // Simpan data lengkap untuk digunakan di unit_price
-                            }));
-                            field.value = services.length > 0 ? services[0].id : ''; // Set nilai default
-                        }
+                            // Update fields dengan data services
+                            this.fields.forEach(field => {
+                                if (field.name === 'name') {
+                                    field.type = 'select';
+                                    field.options = services.map(service => ({
+                                        label: service.service_name,
+                                        value: service.service_name,
+                                        data: service // Simpan data lengkap untuk digunakan di unit_price
+                                    }));
+                                    field.value = services.length > 0 ? services[0].service_name : '';
+                                }
 
-                        if (field.name === 'unit_price') {
-                            // field.type = 'hidden'; // Sembunyikan field unit_price karena akan diisi otomatis
-                            field.value = services.length > 0 ? services[0].service_price : 0; // Set nilai default
-                        }
+                                if (field.name === 'tax_group_id') {
+                                    field.options = result[1].map(group => ({
+                                        label: group.name,
+                                        value: group.id,
+                                    }));
 
-                        if (field.name === 'tax_group_id') {
-                            field.options = result[1].map(group => ({
-                                label: group.name,
-                                value: group.id,
-                            }));
+                                    if (result[1].length > 0 && result[1][0].id !== undefined) {
+                                        field.value = result[1][0].id || this.options.ns_pos_tax_group;
+                                    }
+                                }
 
-                            if (result[1].length > 0 && result[1][0].id !== undefined) {
-                                field.value = result[1][0].id || this.options.ns_pos_tax_group;
+                                if (field.name === 'tax_type') {
+                                    field.value = this.options.tax_type || 'inclusive';
+                                }
+
+                                if (field.name === 'unit_id') {
+                                    field.options = result[0].map(unit => ({
+                                        label: unit.name,
+                                        value: unit.id,
+                                    }));
+
+                                    const defaultUnit = result[0].find(unit => unit.name.toLowerCase() === 'porsi');
+                                    field.value = defaultUnit ? defaultUnit.id : this.options.ns_pos_quick_product_default_unit;
+                                }
+                            });
+
+                            this.buildForm();
+
+                             // Tambahkan: Trigger onChange untuk nilai awal
+                            if (services.length > 0) {
+                                const nameField = this.fields.find(f => f.name === 'name');
+                                if (nameField && nameField.onChange) {
+                                    nameField.onChange(nameField.value);
+                                }
                             }
-                        }
-
-                        if (field.name === 'tax_type') {
-                            field.value = this.options.tax_type || 'inclusive';
-                        }
-
-                        if (field.name === 'unit_id') {
-                            field.options = result[0].map(unit => ({
-                                label: unit.name,
-                                value: unit.id,
-                            }));
-
-                            const defaultUnit = result[0].find(unit => unit.name.toLowerCase() === 'porsi');
-                            field.value = defaultUnit ? defaultUnit.id : this.options.ns_pos_quick_product_default_unit;
+                        },
+                        error: (error) => {
+                            console.error('Error loading services:', error);
+                            this.loaded = true; // Ensure loading state is updated even on error
                         }
                     });
-
-                    this.buildForm();
                 },
                 error: (error) => {
-                    console.error('Error loading services:', error);
+                    console.error('Error loading units or tax groups:', error);
+                    this.loaded = true; // Ensure loading state is updated even on error
                 }
             });
         },
-        error: (error) => {
-            console.error('Error loading units or tax groups:', error);
-        }
-    });
-},
 
         buildForm() {
-            this.fields     =   this.validation.createFields( this.fields );
-            this.loaded     =   true;
+            this.fields = this.validation.createFields(this.fields);
+            this.loaded = true;
 
-            setTimeout(() => {
-                this.$el.querySelector( '#name' ).select();
-            }, 100);
+            this.$nextTick(() => {
+                const nameElement = this.$el.querySelector('#name');
+                if (nameElement) {
+                    nameElement.select();
+                    
+                    // Tambahkan: Event listener manual untuk select
+                    nameElement.addEventListener('change', (event) => {
+                        const nameField = this.fields.find(f => f.name === 'name');
+                        if (nameField && nameField.onChange) {
+                            nameField.onChange(event.target.value);
+                        }
+                    });
+                }
+            });
         }
     },
     computed: {
@@ -198,24 +234,15 @@ export default {
                 options: [], // Akan diisi dengan data dari API
                 validation: 'required',
                 description: __( 'Select a service.' ),
-                onChange: (value, field, form) => {
-                    const selectedService = field.options.find(option => option.value === value);
-                    if (selectedService) {
-                        console.log(selectedService);
-                        // Update unit_price berdasarkan layanan yang dipilih
-                        const unitPriceField = this.fields.find(f => f.name === 'unit_price');
-                        if (unitPriceField) {
-                            unitPriceField.value = selectedService.data.service_price;
-                        }
-                    }
-                }
-            }, {
+                onChange: null,
+            }, 
+            {
                 label: __( 'Unit Price' ),
                 name: 'unit_price',
-                // type: 'hidden', // Sembunyikan field karena akan diisi otomatis
                 validation: '',
-                // value: 1000, // Nilai default
-            },  {
+                value: 1000, // Nilai default
+            }, 
+            {
                     label: __( 'Quantity' ),
                     name: 'quantity',
                     type: 'text',

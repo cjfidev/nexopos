@@ -100,6 +100,7 @@ class CustomerCrud extends CrudService
         'first_name' => NotDefinedCast::class,
         'last_name' => NotDefinedCast::class,
         'phone' => NotDefinedCast::class,
+        'customer_no' => NotDefinedCast::class,
         'owed_amount' => CurrencyCast::class,
         'account_amount' => CurrencyCast::class,
         'purchases_amount' => CurrencyCast::class,
@@ -282,7 +283,18 @@ class CustomerCrud extends CrudService
                             name: 'gender',
                             value: $entry->gender ?? '',
                             description: __( 'Provide the customer gender' )
-                        )
+                            ),
+                            FormInput::text(
+                                label: __( 'Customer No' ),
+                                name: 'customer_no',
+                                value: $entry->customer_no ?? '',
+                                validation: collect( [
+                                    ns()->option->get( 'ns_customers_force_unique_customer_no', 'no' ) === 'yes' ? (
+                                        $entry instanceof Customer && ! empty( $entry->customer_no ) ? Rule::unique( 'nexopos_users', 'customer_no' )->ignore( $entry->id ) : Rule::unique( 'nexopos_users', 'customer_no' )
+                                    ) : '',
+                                ] )->toArray(),
+                                description: __( 'Provide the customer number' ),
+                            ),
                     )
                 ),
                 CrudForm::tab(

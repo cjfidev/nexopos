@@ -111,6 +111,7 @@ class CustomerService
             ->orWhere( 'last_name', 'like', '%' . $argument . '%' )
             ->orWhere( 'email', 'like', '%' . $argument . '%' )
             ->orWhere( 'phone', 'like', '%' . $argument . '%' )
+            ->orWhere( 'customer_no', 'like', '%' . $argument . '%' )
             ->limit( 10 )
             ->get();
 
