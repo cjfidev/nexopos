@@ -309,12 +309,12 @@ export default {
                                 <ns-button v-if="order.tendered > 0" @click="submitOrder({ payment_status: 'unpaid' })" type="info">
                                     <span><i class="las la-save"></i> {{ __( 'Update' ) }}</span>
                                 </ns-button>                         
-                            </div>
+                            </div> -->
                             <div class="px-2" v-if="order.tendered === 0">
                                 <ns-button @click="submiAsUnpaid()" :type="'info'">
                                     <span><i class="las la-hands-helping"></i> {{ __( 'Save As Unpaid' ) }}</span>
-                                </ns-button>                         
-                            </div> -->
+                                </ns-button>
+                            </div>
                         </div>
                     </div>
                 </div>

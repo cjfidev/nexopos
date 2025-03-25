@@ -1019,6 +1019,30 @@ class ProcurementService
             ->with( 'unit_quantities.unit' );
     }
 
+    public function searchReturnQuery()
+    {
+        return ProcurementProduct::query()
+            ->with( 'procurement', 'product.unit_quantities.unit' );
+    }
+
+    public function searchProcurementReturn( $argument, $limit = 10 )
+    {
+        return $this->searchReturnQuery()
+            ->limit( $limit )
+            // ->where( function ( $query ) use ( $argument ) {
+            //     $query->orWhere( 'name', 'LIKE', "%{$argument}%" );
+            //         // ->orWhere( 'sku', 'LIKE', "%{$argument}%" )
+            //         // ->orWhere( 'barcode', 'LIKE', "%{$argument}%" );
+            // } )
+            ->whereHas( 'procurement', function ( $query ) use ( $argument ) {
+                $query->where( 'name', 'LIKE', "%{$argument}%" );
+            } )
+            ->get()
+            ->map( function ( $product ) {
+                return $this->populateLoadedReturnProduct( $product );
+            } );
+    }
+
     public function searchProduct( $argument, $limit = 10 )
     {
         return $this->searchQuery()
@@ -1061,6 +1085,37 @@ class ProcurementService
                 unit: $unitQuantity->unit
             );
         } );
+
+        return $product;
+    }
+
+    public function populateLoadedReturnProduct( $product )
+    {
+        $units = json_decode( $product->purchase_unit_ids );
+
+        if ( $units ) {
+            $product->purchase_units = collect();
+            collect( $units )->each( function ( $unitID ) use ( &$product ) {
+                $product->purchase_units->push( Unit::find( $unitID ) );
+            } );
+        }
+
+        /**
+         * We'll pull the last purchase
+         * price for the item retreived
+         */
+        // $product->unit_quantities->each( function ( $unitQuantity ) use ( $product ) {
+        //     $unitQuantity->load( 'unit' );
+
+        //     /**
+        //      * just in case it's not a valid instance
+        //      * we'll provide a default value "0"
+        //      */
+        //     $unitQuantity->last_purchase_price = $this->productService->getLastPurchasePrice( 
+        //         product: $product,
+        //         unit: $unitQuantity->unit
+        //     );
+        // } );
 
         return $product;
     }

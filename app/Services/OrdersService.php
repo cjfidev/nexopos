@@ -869,17 +869,85 @@ class OrdersService
      *
      * @param array $payment
      */
+    // private function __saveOrderSinglePayment( $payment, Order $order ): OrderPayment
+    // {
+    //     $orderPayment = isset( $payment[ 'id' ] ) ? OrderPayment::find( $payment[ 'id' ] ) : false;
+
+    //     if ( ! $orderPayment instanceof OrderPayment ) {
+    //         $orderPayment = new OrderPayment;
+    //     }
+    //     $orderPayment->identifier = $payment['identifier'];
+    //     $orderPayment->value = $this->currencyService->define( $payment['value'] )->toFloat();
+    //     $orderPayment->author = $order->author;
+
+    //     return $orderPayment;
+    // }
+
     private function __saveOrderSinglePayment( $payment, Order $order ): OrderPayment
     {
-        $orderPayment = isset( $payment[ 'id' ] ) ? OrderPayment::find( $payment[ 'id' ] ) : false;
-
-        if ( ! $orderPayment instanceof OrderPayment ) {
-            $orderPayment = new OrderPayment;
+        // Ensure the order is saved to the database
+        if ($order->id === null) {
+            try {
+                $order->save();
+            } catch (\Exception $e) {
+                \Log::error('Failed to save order before creating payment: ' . $e->getMessage(), [
+                    'payment' => $payment,
+                    'order' => $order->toArray()
+                ]);
+                
+                throw new \Exception('Unable to save order before creating payment: ' . $e->getMessage());
+            }
         }
 
+        // Find existing order payment or create new
+        $orderPayment = isset($payment['id']) 
+            ? OrderPayment::find($payment['id']) 
+            : new OrderPayment();
+
+        // Set basic payment details
+        $orderPayment->order_id = $order->id;
         $orderPayment->identifier = $payment['identifier'];
-        $orderPayment->value = $this->currencyService->define( $payment['value'] )->toFloat();
+        $orderPayment->value = $this->currencyService->define($payment['value'])->toFloat();
         $orderPayment->author = $order->author;
+
+        // Handle account payment (creating debt)
+        if ($payment['identifier'] == OrderPayment::PAYMENT_ACCOUNT) {
+            try {
+                $customerDebtService = new CustomerDebtService();
+                $debtData = [
+                    'customer_id' => $order->customer_id,
+                    'order_id' => $order->id,
+                    'amount_due' => $order->total,
+                    'amount_paid' => 0,
+                    'remaining_debt' => $order->total,
+                    'due_date' => now()->addDays(30)->toDateString(),
+                    'author' => auth()->id(),
+                ];
+
+                $customerDebtService->createDebt($debtData);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create debt for order payment', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                    'debt_data' => $debtData ?? []
+                ]);
+
+                // Optionally rethrow or handle the error as needed
+                throw new \Exception('Unable to create debt: ' . $e->getMessage());
+            }
+        }
+
+        // Save the order payment
+        try {
+            $orderPayment->save();
+        } catch (\Exception $e) {
+            \Log::error('Failed to save order payment', [
+                'payment' => $orderPayment->toArray(),
+                'error' => $e->getMessage()
+            ]);
+
+            throw new \Exception('Unable to save order payment: ' . $e->getMessage());
+        }
 
         return $orderPayment;
     }

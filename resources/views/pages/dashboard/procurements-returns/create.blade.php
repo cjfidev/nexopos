@@ -6,7 +6,7 @@
     <div class="px-4 flex-auto flex flex-col" id="dashboard-content">
         @include( 'common.dashboard.title' )
         <ns-procurement-return
-            submit-url="{{ ns()->url( '/api/procurements' ) }}"
+            submit-url="{{ ns()->url( '/api/procurements-returns' ) }}"
             src="{{ ns()->url( '/api/forms/ns.procurement-return' ) }}"
             return-url="{{ ns()->url( '/dashboard/procurements' ) }}">
             <template v-slot:title>{{ __( 'Procurement Name' ) }}</template>

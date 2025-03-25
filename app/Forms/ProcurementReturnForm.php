@@ -30,13 +30,17 @@ class ProcurementReturnForm extends SettingsPage
                 'description' => __( 'Provide a name that will help to identify the procurement.' ),
             ],
             'columns' => Hook::filter( 'ns-procurement-columns', [
+                'procurement_name' => [
+                    'label' => __( 'Procurement Name' ),
+                    'type' => 'string',
+                ],
                 'name' => [
                     'label' => __( 'Name' ),
                     'type' => 'name',
                 ],
-                'purchase_price_edit' => [
+                'purchase_price' => [
                     'label' => __( 'Unit Price' ),
-                    'type' => 'text',
+                    'type' => 'currency',
                 ],
                 'tax_value' => [
                     'label' => __( 'Tax Value' ),
@@ -44,7 +48,7 @@ class ProcurementReturnForm extends SettingsPage
                 ],
                 'purchase_quantity' => [
                     'label' => __( 'Purchase Quantity' ),
-                    'type' => 'text',
+                    'type' => 'number',                    
                 ],
                 'quantity' => [
                     'label' => __( 'Quantity' ),
@@ -69,7 +73,7 @@ class ProcurementReturnForm extends SettingsPage
                 return $_product;
             } ) : [],
             'tabs' => [
-                'general' => include ( dirname( __FILE__ ) . '/procurement/general.php' ),
+                'general' => include ( dirname( __FILE__ ) . '/procurement/return-general.php' ),
             ],
         ] );
     }

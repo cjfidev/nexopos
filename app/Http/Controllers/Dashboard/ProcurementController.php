@@ -285,6 +285,11 @@ class ProcurementController extends DashboardController
         return $this->procurementService->searchProduct( $request->input( 'search' ) );
     }
 
+    public function searchProcurementReturn( Request $request )
+    {
+        return $this->procurementService->searchProcurementReturn( $request->input( 'search' ) );
+    }
+
     public function searchProcurementProduct( Request $request )
     {
         $products = Product::query()

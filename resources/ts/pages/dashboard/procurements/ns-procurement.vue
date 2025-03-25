@@ -249,7 +249,7 @@ export default {
             }
 
             this.totalPurchasePrice     =   0;
-
+            console.log(this.form.products)
             if ( this.form.products.length > 0 ) {
                 this.totalPurchasePrice     =   this.form.products.map( p => parseFloat( p.procurement.total_purchase_price ) )
                     .reduce( ( b, a ) => b + a );
@@ -262,7 +262,7 @@ export default {
          * @param {integer} product index
          * @return {void}
          */
-        updateLine( index ) {
+        updateLine( index ) {            
             const product   =   this.form.products[ index ];
             const taxGroup  =   this.taxes.filter( taxGroup => taxGroup.id === product.procurement.tax_group_id );
 

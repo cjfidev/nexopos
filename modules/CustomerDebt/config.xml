@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<module>
+    <namespace>CustomerDebt</namespace>
+    <version>1.0</version>
+    <author>mesa</author>
+    <name>Customer Debt</name>
+    <description>this will help you to maintain customer debt</description>
+</module>

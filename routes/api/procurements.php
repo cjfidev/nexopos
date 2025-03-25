@@ -14,6 +14,7 @@ Route::post( 'procurements/{id}/products', [ ProcurementController::class, 'proc
 Route::post( 'procurements', [ ProcurementController::class, 'create' ] );
 Route::post( 'procurements/products/search-procurement-product', [ ProcurementController::class, 'searchProcurementProduct' ] );
 Route::post( 'procurements/products/search-product', [ ProcurementController::class, 'searchProduct' ] );
+Route::post( 'procurements/products/search-procurement-return', [ ProcurementController::class, 'searchProcurementReturn' ] );
 
 Route::put( 'procurements/{procurement}', [ ProcurementController::class, 'edit' ] );
 Route::put( 'procurements/{procurement}/change-payment-status', [ ProcurementController::class, 'changePaymentStatus' ] );

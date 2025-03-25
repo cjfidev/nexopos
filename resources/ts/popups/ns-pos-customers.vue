@@ -56,14 +56,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- <div class="px-2 mb-4 w-full md:w-1/4 flex">
+                                    <div class="px-2 mb-4 w-full md:w-1/4 flex">
                                         <div class="rounded-lg shadow w-full bg-transparent bg-gradient-to-br from-blue-500 to-blue-700 p-2 text-white">
                                             <h3 class="font-medium text-lg">{{ __( 'Wallet Amount' ) }}</h3>
                                             <div class="w-full flex justify-end">
                                                 <h2 class="font-bold">{{ nsCurrency( customer.account_amount ) }}</h2>
                                             </div>
                                         </div>
-                                    </div> -->
+                                    </div>
                                     <div class="px-2 mb-4 w-full md:w-1/4 flex">
                                         <div class="rounded-lg shadow w-full bg-transparent bg-gradient-to-br from-teal-500 to-teal-700 p-2 text-white">
                                             <h3 class="font-medium text-lg">{{ __( 'Credit Limit' ) }}</h3>
@@ -127,7 +127,7 @@
                                             </div>
                                         </template>
                                     </ns-tabs-item>
-                                    <!-- <ns-tabs-item identifier="wallet-history" :label="__( 'Wallet History' )">
+                                    <ns-tabs-item identifier="wallet-history" :label="__( 'Wallet History' )">
                                         <div class="flex-auto h-full justify-center flex items-center" v-if="isLoadingHistory">
                                             <ns-spinner size="36"></ns-spinner>
                                         </div>
@@ -167,7 +167,7 @@
                                                 </div>
                                             </div>
                                         </template>
-                                    </ns-tabs-item> -->
+                                    </ns-tabs-item>
                                     <ns-tabs-item identifier="coupons" :label="__( 'Coupons' )">
                                         <div class="flex-auto h-full justify-center flex items-center" v-if="isLoadingCoupons">
                                             <ns-spinner size="36"></ns-spinner>

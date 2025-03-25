@@ -13,10 +13,12 @@ import NsSelectPopup from '~/popups/ns-select-popup.vue';
 import { selectApiEntities } from '~/libraries/select-api-entities';
 import { Unit } from '~/interfaces/unit';
 import { nsPOSLoadingPopup } from '~/components/components';
+import { re } from 'mathjs';
 
 
 export default {
     name: 'ns-procurement-return',
+
     mounted() {
         this.reloadEntities();
 
@@ -28,8 +30,7 @@ export default {
                     window.removeEventListener( 'beforeunload', this.addAccidentalCloseListener );
                 }
             }
-        });
-
+        });        
 
         /**
          * We'll check if the URL has a preload query string
@@ -240,7 +241,6 @@ export default {
         },
         
         computeTotal() {
-
             this.totalTaxValues = 0;
 
             if ( this.form.products.length > 0 ) {
@@ -249,7 +249,6 @@ export default {
             }
 
             this.totalPurchasePrice     =   0;
-
             if ( this.form.products.length > 0 ) {
                 this.totalPurchasePrice     =   this.form.products.map( p => parseFloat( p.procurement.total_purchase_price ) )
                     .reduce( ( b, a ) => b + a );
@@ -264,10 +263,8 @@ export default {
          */
         updateLine( index ) {
             const product   =   this.form.products[ index ];
-            const taxGroup  =   this.taxes.filter( taxGroup => taxGroup.id === product.procurement.tax_group_id );
-
+            const taxGroup  =   this.taxes.filter( taxGroup => taxGroup.id === product.procurement.tax_group_id );            
             if ( parseFloat( product.procurement.purchase_price_edit ) > 0 && parseFloat( product.procurement.quantity ) > 0 ) {
-
                 /**
                  * if some tax group is provided
                  * then let's compute all the grouped taxes
@@ -299,7 +296,7 @@ export default {
                     product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price_edit );
                     product.procurement.tax_value               =   0;
                 }
-
+                // console.log(product.unit_quantities[0].quantity)
                 product.procurement.tax_value                   =   product.procurement.tax_value * parseFloat( product.procurement.quantity );
                 product.procurement.total_purchase_price        =   product.procurement.purchase_price * parseFloat( product.procurement.quantity );
             } 
@@ -336,15 +333,58 @@ export default {
          * @param string
          * @return void
          */
-        doSearch( search ) {
-            nsHttpClient.post( '/api/procurements/products/search-product', { search })
-                .subscribe( (result: any[]) => {
-                    if ( result.length === 1 ) {
-                        this.addProductList( result[0] );
-                    } else if ( result.length > 1 ) {
-                        this.searchResult   =   result;
-                    } else {
-                        nsSnackBar.error( __( 'No result match your query.' ) ).subscribe();
+        // doSearch( search ) {
+        //     nsHttpClient.post( '/api/procurements/products/search-procurement-return', { search })
+        //         .subscribe( (result: any[]) => {
+        //             if ( result.length === 1 ) {
+        //                 this.addProductList( result[0] );
+        //             } else if ( result.length > 1 ) {
+        //                 this.searchResult   =   result;
+        //             } else {
+        //                 nsSnackBar.error( __( 'No result match your query.' ) ).subscribe();
+        //             }
+        //         })
+        // },
+
+        doSearch(search) {
+            nsHttpClient.post('/api/procurements/products/search-procurement-return', { search })
+                .subscribe((result: any[]) => {
+                    if (result.length === 0) {
+                        nsSnackBar.error(__('No result match your query.')).subscribe();
+                    } else {                                                
+                        // Tambahkan semua produk yang ditemukan langsung ke daftar
+                        result.forEach(product => {
+                            this.addProductList(product);
+                        });
+                         // Hitung total quantity menggunakan reduce
+                        const totalReturnQuantity = result.reduce((total, product) => {
+                            return total + (product.product.procurement.quantity || 0);
+                        }, 0);
+
+                        const invoiceDate = new Date(result[0].procurement.invoice_date);
+                        // Fungsi untuk mengubah format menjadi dd/mm/yyyy
+                        const formatDate = (date) => {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');  // Menambahkan leading zero jika perlu
+                            const day = String(date.getDate()).padStart(2, '0');  // Menambahkan leading zero jika perlu
+
+                            return `${year}-${month}-${day}`;
+                        };
+                        // Mengubah invoice_date ke format dd/mm/yyyy
+                        const formattedDate = formatDate(invoiceDate);
+                        this.form.tabs.general.fields[0].value = result[0].procurement.invoice_reference;
+                        this.form.tabs.general.fields[2].value = formattedDate;
+                        this.form.tabs.general.fields[3].value = result[0].procurement.provider_id;
+                        // Kosongkan hasil pencarian karena semua produk sudah ditambahkan
+                        this.searchResult = [];
+                        this.searchValue = '';
+                        
+                        // Tampilkan notifikasi sukses
+                        if (result.length === 1) {
+                            nsSnackBar.success(__('1 product has been added to the list.')).subscribe();
+                        } else {
+                            nsSnackBar.success(__(`${result.length} products have been added to the list.`)).subscribe();
+                        }
                     }
                 })
         },
@@ -434,7 +474,18 @@ export default {
                 tab.active  =   true;
             });
         },
-        addProductList( product ) {
+        async addProductList( value ) {
+            const procurementProduct = value;
+            const product = value.product;
+
+            // Cek apakah produk dengan ID yang sama sudah ada di dalam daftar
+            const isProductAlreadyAdded = this.form.products.some( existingProduct => existingProduct.id === product.id );
+
+            if ( isProductAlreadyAdded ) {
+                // Tampilkan alert atau notifikasi bahwa produk sudah ada
+                return nsSnackBar.error( __( 'Produk ini sudah ada dalam daftar. Silakan pilih produk lain.' ) )
+                    .subscribe();
+            }
 
             if ( product.unit_quantities === undefined ) {
                 return nsSnackBar.error( __( 'Unable to add product which doesn\'t unit quantities defined.' ) )
@@ -448,16 +499,18 @@ export default {
             if ( product.procurement === undefined ) {
                 product.procurement = {};
             }
-
-            const defaultValues     =   {
+            const return_quantity = product.unit_quantities[0].quantity < procurementProduct.quantity ? product.unit_quantities[0].quantity : procurementProduct.quantity
+            const defaultValues = {
+                procurement_name: procurementProduct.procurement.name,
                 gross_purchase_price: 0,
-                purchase_price_edit: 0,
+                purchase_price_edit: procurementProduct.purchase_price,
                 tax_value: 0,
                 net_purchase_price: 0,
-                purchase_price: 0,
+                purchase_price: procurementProduct.purchase_price,
                 total_price: 0,
-                total_purchase_price: 0,
-                quantity: 1,
+                total_purchase_price: procurementProduct.purchase_price * parseFloat( return_quantity ),
+                purchase_quantity: procurementProduct.quantity,
+                quantity: return_quantity,
                 expiration_date: null,
                 tax_group_id: product.tax_group_id,
                 tax_type: product.tax_type || 'inclusive',
@@ -466,17 +519,18 @@ export default {
                 convert_unit_id: product.unit_quantities[0].convert_unit_id,
                 procurement_id: null,
                 $invalid: false,
-            }
-            
-            product.procurement     =   Object.assign( defaultValues, product.procurement );
+            };
 
-            this.searchResult           =   [];
-            this.searchValue            =   '';
+            this.computeTotal();
+
+            product.procurement = Object.assign( defaultValues, product.procurement );
+            this.searchResult = [];
+            this.searchValue = '';
 
             this.form.products.push( product );
 
             const indexOfProduct = this.form.products.length - 1;
-            
+
             this.fetchLastPurchasePrice( indexOfProduct );
         },
         submit() {
@@ -527,33 +581,35 @@ export default {
                 }
             }
 
-            const popup = Popup.show( nsPOSLoadingPopup );
+            console.log(data, this.submitUrl);
 
-            nsHttpClient[ this.submitMethod ? this.submitMethod.toLowerCase() : 'post' ]( this.submitUrl, data )
-                .subscribe({
-                    next: data => {                        
-                        if ( data.status === 'success' ) {
-                            this.shouldPreventAccidentalRefresh.next(false);
-                            return document.location   =   this.returnUrl;
-                        }
+            // const popup = Popup.show( nsPOSLoadingPopup );
 
-                        popup.close();
-                        this.formValidation.enableForm( this.form );
-                    }, 
-                    error: ( error ) => {
-                        popup.close();
+            // nsHttpClient[ this.submitMethod ? this.submitMethod.toLowerCase() : 'post' ]( this.submitUrl, data )
+            //     .subscribe({
+            //         next: data => {                        
+            //             if ( data.status === 'success' ) {
+            //                 this.shouldPreventAccidentalRefresh.next(false);
+            //                 return document.location   =   this.returnUrl;
+            //             }
 
-                        nsSnackBar.error( error.message, undefined, {
-                            duration: 5000
-                        }).subscribe();
+            //             popup.close();
+            //             this.formValidation.enableForm( this.form );
+            //         }, 
+            //         error: ( error ) => {
+            //             popup.close();
 
-                        this.formValidation.enableForm( this.form );
+            //             nsSnackBar.error( error.message, undefined, {
+            //                 duration: 5000
+            //             }).subscribe();
+
+            //             this.formValidation.enableForm( this.form );
                         
-                        if ( error.errors ) {
-                            this.formValidation.triggerError( this.form, error.errors );
-                        }
-                    }
-                })
+            //             if ( error.errors ) {
+            //                 this.formValidation.triggerError( this.form, error.errors );
+            //             }
+            //         }
+            //     })
         },
         deleteProduct( index ) {
             this.form.products.splice( index, 1 );
@@ -805,15 +861,15 @@ export default {
                                         <input
                                             v-model="searchValue"
                                             type="text" 
-                                            :placeholder="__( 'SKU, Barcode, Namez' )"
+                                            :placeholder="__( 'SKU, Barcode, Name' )"
                                             class="flex-auto text-primary outline-none h-10 px-2">
                                     </div>
                                     <div class="h-0">
                                         <div class="shadow bg-floating-menu relative z-10">
                                             <div @click="addProductList( product )" v-for="(product, index) of searchResult" :key="index" class="cursor-pointer border border-b hover:bg-floating-menu-hover border-floating-menu-edge p-2 text-primary">
                                                 <span class="block font-bold text-primary">{{ product.name }}</span>
-                                                <span class="block text-sm text-priamry">{{ __( 'SKU' ) }} : {{ product.sku }}</span>
-                                                <span class="block text-sm text-primary">{{ __( 'Barcode' ) }} : {{ product.barcode }}</span>                                                
+                                                <span class="block text-sm text-priamry">{{ __( 'Procurement Name' ) }} : {{ product.procurement.name }}</span>
+                                                <span class="block text-sm text-primary">{{ __( 'Invoice Date' ) }} : {{ product.procurement.invoice_date }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -827,7 +883,12 @@ export default {
                                         </thead>
                                         <tbody>
                                             <tr v-for="( product, index ) of form.products" :key="index" :class="product.procurement.$invalid ? 'error border-2 border-error-primary' : ''">
-                                                <template v-for="( column, key ) of form.columns">                                                                                                       
+                                                <template v-for="( column, key ) of form.columns">
+                                                    <td :key="key" v-if="column.type === 'string'" class="p-2 text-primary border">
+                                                        <div class="flex items-start">
+                                                            <span class="text-sm text-primary">{{ product.procurement[ key ] }}</span>
+                                                        </div>
+                                                    </td>                                                                                                       
                                                     <td :key="key" v-if="column.type === 'name'" width="500" class="p-2 text-primary border">
                                                         <span class="">{{ product.name }}</span>
                                                         <div class="flex">
@@ -868,6 +929,11 @@ export default {
                                                     <td :key="key" v-if="column.type === 'currency'" class="p-2 text-primary border">
                                                         <div class="flex items-start flex-col justify-end">
                                                             <span class="text-sm text-primary">{{ nsCurrency( product.procurement[ key ] ) }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td :key="key" v-if="column.type === 'number'" class="p-2 text-primary border">
+                                                        <div class="flex justify-center">
+                                                            <span class="text-sm text-primary">{{ product.procurement[ key ] }}</span>
                                                         </div>
                                                     </td>
                                                 </template>

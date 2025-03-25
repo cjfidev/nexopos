@@ -92,6 +92,7 @@ export default {
         proceedAddingPayment( event ) {
             const value    =   parseFloat( event );
             const payments  =   this.order.payments;
+            console.log(this.order)
 
             if ( value <= 0 ) {
                 return nsSnackBar.error( __( 'Please provide a valid payment amount.' ) )
