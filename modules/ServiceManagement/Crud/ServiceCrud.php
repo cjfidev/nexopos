@@ -3,11 +3,15 @@ namespace Modules\ServiceManagement\Crud;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use App\Services\Helper;
 use App\Services\CrudService;
 use App\Services\CrudEntry;
 use App\Classes\CrudTable;
 use App\Classes\CrudInput;
+use App\Classes\FormInput;
 use App\Classes\CrudForm;
+use App\Crud\CustomerGroupCrud;
+use App\Models\CustomerGroup;
 use App\Exceptions\NotAllowedException;
 use TorMorten\Eventy\Facades\Events as Hook;
 use Modules\ServiceManagement\Models\Service;
@@ -193,6 +197,17 @@ class ServiceCrud extends CrudService
                             'label' => __( 'Price' ),
                             'description' => __( 'Provide the service price.' ),
                             'validation' => 'required', 
+                        ],
+                        [
+                            'type' => 'search-select',
+                            'name' => 'group_id',
+                            'value' => $entry?->group_id,
+                            'label' => __( 'Group' ),
+                            'description' => __( 'Assign the customer to a group.' ),
+                            'validation' => 'required',
+                            // 'component' => 'nsCrudForm',
+                            'props' => CustomerGroupCrud::getFormConfig(),
+                            'options' => Helper::toJsOptions( CustomerGroup::all(), [ 'id', 'name' ] ),
                         ],
                     )
                 )

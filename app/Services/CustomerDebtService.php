@@ -3,29 +3,43 @@
 namespace App\Services;
 
 use App\Models\CustomerDebt;
+use App\Models\CustomerDebtSummary;
+use Illuminate\Support\Facades\DB;
 
 class CustomerDebtService
 {
-    public function createDebt($data)
+    public function createDebt(array $data): CustomerDebt
     {
-        // Logika untuk membuat utang pelanggan baru
-        $customerDebt = new CustomerDebt();
-        $customerDebt->customer_id = $data['customer_id'];
-        $customerDebt->order_id = $data['order_id'];
-        $customerDebt->amount_due = $data['amount_due'];
-        $customerDebt->amount_paid = $data['amount_paid'];
-        $customerDebt->remaining_debt = $data['remaining_debt'];
-        $customerDebt->due_date = $data['due_date'];
-        $customerDebt->author = $data['author'];
-        $customerDebt->save();
+        return DB::transaction(function () use ($data) {
+            $debt = CustomerDebt::create($data);
+            $this->recalculateCustomerDebtSummary($data['customer_id']);
+            return $debt;
+        });
     }
 
-    public function updateDebt($id, $data)
+    public function recordPayment(int $debtId, float $amount): CustomerDebt
     {
-        // Logika untuk mengupdate utang pelanggan, termasuk menghitung bunga utang, mengirim notifikasi, dll.
-        $customerDebt = CustomerDebt::find($id);
-        $customerDebt->updateDebt($data);
+        return DB::transaction(function () use ($debtId, $amount) {
+            $debt = CustomerDebt::findOrFail($debtId);
+            
+            $debt->update([
+                'amount_paid' => $debt->amount_paid + $amount,
+                'remaining_debt' => max(0, $debt->remaining_debt - $amount)
+            ]);
+            
+            $this->recalculateCustomerDebtSummary($debt->customer_id);
+            return $debt;
+        });
     }
 
-    // Method-method lainnya
+    public function recalculateCustomerDebtSummary(int $customerId): CustomerDebtSummary
+    {
+        $totalDebt = CustomerDebt::where('customer_id', $customerId)
+            ->sum('remaining_debt');
+            
+        return CustomerDebtSummary::updateOrCreate(
+            ['customer_id' => $customerId],
+            ['total_debt' => $totalDebt, 'author' => auth()->id()]
+        );
+    }
 }

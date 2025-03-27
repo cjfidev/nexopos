@@ -923,8 +923,14 @@ class OrdersService
                     'due_date' => now()->addDays(30)->toDateString(),
                     'author' => auth()->id(),
                 ];
-
+        
+                // Create the debt record
                 $customerDebtService->createDebt($debtData);
+                
+                // Update or create the summary
+                $debtSummaryService = new CustomerDebtSummaryService();
+                $debtSummaryService->updateOrCreateSummary($order->customer_id, $order->total);
+                
             } catch (\Exception $e) {
                 \Log::error('Failed to create debt for order payment', [
                     'order_id' => $order->id,

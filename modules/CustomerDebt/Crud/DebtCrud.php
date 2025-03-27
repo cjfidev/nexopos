@@ -162,7 +162,7 @@ class DebtCrud extends CrudService
     public function getLabels(): array
     {
         return CrudTable::labels(
-            list_title:  __( 'Debts List' ),
+            list_title:  __( 'Customer Debts List' ),
             list_description:  __( 'Display all debts.' ),
             no_entry:  __( 'No debts has been registered' ),
             create_new:  __( 'Add a new debt' ),
