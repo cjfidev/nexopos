@@ -215,7 +215,14 @@ export default {
             return form;
         },
         handleFieldChange( field, fields ) {
+            console.log(fields)
             if ( field.errors.length === 0 ) {
+                if (field.name === 'customer_id') {
+                    const debtRemainingField = fields.find(f => f.name === 'debt_remaining');
+                    if (debtRemainingField) {
+                        debtRemainingField.value = field.value;
+                    }
+                }
                 field.subject.next({ field, fields });
             }
         },
@@ -294,7 +301,11 @@ export default {
                         <!-- We can't display both fields and component at the same time. The component has the priority over fields -->
                         <div class="-mx-4 flex flex-wrap" v-if="activeTabFields.length > 0 && ! activeTab.component">
                             <div :key="`${activeTabIdentifier}-${key}`" :class="fieldClass || 'px-4 w-full md:w-1/2 lg:w-1/3'" v-for="(field,key) of activeTabFields">
-                                <ns-field @saved="handleSaved( $event, activeTabIdentifier, field )" @blur="formValidation.checkField( field )" @change="formValidation.checkField( field ) && handleFieldChange( field, activeTabFields )" :field="field"/>
+                                <ns-field @saved="handleSaved( $event, activeTabIdentifier, field )" 
+                                          @blur="formValidation.checkField( field )" 
+                                          @change="formValidation.checkField( field ) && handleFieldChange( field, activeTabFields )" 
+                                          :field="field"
+                                        />
                             </div>
                         </div>
                         <div class="-mx-4 flex flex-wrap" v-if="activeTab && activeTab.component">

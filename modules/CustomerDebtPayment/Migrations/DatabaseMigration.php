@@ -4,7 +4,7 @@
  * @package 5.3.3
 **/
 
-namespace Modules\CustomerPaymentDebt\Migrations;
+namespace Modules\CustomerDebtPayment\Migrations;
 
 use App\Classes\Schema;
 use Illuminate\Database\Schema\Blueprint;

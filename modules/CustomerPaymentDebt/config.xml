@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<module>
-    <namespace>CustomerPaymentDebt</namespace>
-    <version>1.0</version>
-    <author>Mesa</author>
-    <name>Customer Payment Debt</name>
-    <description>This module will help you to maintain customer payment debt</description>
-</module>

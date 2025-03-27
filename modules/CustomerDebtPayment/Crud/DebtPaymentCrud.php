@@ -1,19 +1,22 @@
 <?php
-namespace Modules\CustomerDebt\Crud;
+namespace Modules\CustomerDebtPayment\Crud;
 
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use App\Models\CustomerDebtSummary;
 use Illuminate\Http\Request;
 use App\Services\CrudService;
 use App\Services\CrudEntry;
 use App\Classes\CrudTable;
 use App\Classes\CrudInput;
 use App\Classes\CrudForm;
+use App\Crud\UserCrud;
+use App\Services\Helper;
 use App\Exceptions\NotAllowedException;
 use TorMorten\Eventy\Facades\Events as Hook;
-use App\Models\CustomerDebt;
-use App\Models\User;
+use App\Models\CustomerDebtPayment;
 
-class DebtCrud extends CrudService
+class DebtPaymentCrud extends CrudService
 {
     /**
      * Defines if the crud class should be automatically discovered.
@@ -25,31 +28,31 @@ class DebtCrud extends CrudService
      * define the base table
      * @param string
      */
-    protected $table = 'nexopos_customers_debts';
+    protected $table = 'nexopos_customers_debt_payments';
 
     /**
      * default slug
      * @param string
      */
-    protected $slug = 'customers-debts';
+    protected $slug = 'customers-debt-payments';
 
     /**
      * Define namespace
      * @param string
      */
-    protected $namespace = 'customers.debts';
+    protected $namespace = 'customers.debt-payments';
 
     /**
      * To be able to autoload the class, we need to define
      * the identifier on a constant.
      */
-    const IDENTIFIER = 'customers.debts';
+    const IDENTIFIER = 'customers.debt-payments';
 
     /**
      * Model Used
      * @param string
      */
-    protected $model = CustomerDebt::class;
+    protected $model = CustomerDebtPayment::class;
 
     /**
      * Define permissions
@@ -76,11 +79,8 @@ class DebtCrud extends CrudService
      *
      * @param array
      */
-    public $relations = [
-        [ 'nexopos_users as author', 'nexopos_customers_debts.author', '=', 'author.id' ],
-        [ 'nexopos_users as customer', 'nexopos_customers_debts.customer_id', '=', 'customer.id' ],
-        [ 'nexopos_orders as order', 'nexopos_customers_debts.order_id', '=', 'order.id' ],
-    ];
+    public $relations   =  [
+            ];
 
     /**
      * all tabs mentionned on the tabs relations
@@ -105,11 +105,7 @@ class DebtCrud extends CrudService
      *      'user'  =>  [ 'username' ], // here the relation on the table nexopos_users is using "user" as an alias
      * ]
      */
-    public $pick = [
-        'author' => [ 'username' ],
-        'customer' => [ 'first_name', 'phone' ],
-        'order' => [ 'code' ],
-    ];
+    public $pick = [];
 
     /**
      * Define where statement
@@ -162,24 +158,24 @@ class DebtCrud extends CrudService
     public function getLabels(): array
     {
         return CrudTable::labels(
-            list_title:  __( 'Customer Debts List' ),
-            list_description:  __( 'Display all debts.' ),
-            no_entry:  __( 'No debts has been registered' ),
-            create_new:  __( 'Add a new debt' ),
-            create_title:  __( 'Create a new debt' ),
-            create_description:  __( 'Register a new debt and save it.' ),
-            edit_title:  __( 'Edit debt' ),
-            edit_description:  __( 'Modify  Debt.' ),
-            back_to_list:  __( 'Return to Debts' ),
+            list_title:  __( 'Debt Payments List' ),
+            list_description:  __( 'Display all debt payments.' ),
+            no_entry:  __( 'No debt payments has been registered' ),
+            create_new:  __( 'Add a new debt payment' ),
+            create_title:  __( 'Create a new debt payment' ),
+            create_description:  __( 'Register a new debt payment and save it.' ),
+            edit_title:  __( 'Edit debt payment' ),
+            edit_description:  __( 'Modify  Debt payment.' ),
+            back_to_list:  __( 'Return to Debt Payments' ),
         );
     }
 
     /**
      * Defines the forms used to create and update entries.
-     * @param CustomerDebt $entry
+     * @param CustomerDebtPayment $entry
      * @return array
      */
-    public function getForm( CustomerDebt $entry = null ): array
+    public function getForm( CustomerDebtPayment $entry = null ): array
     {
         return CrudForm::form(
             main: CrudInput::text(
@@ -192,29 +188,26 @@ class DebtCrud extends CrudService
                 CrudForm::tab(
                     identifier: 'general',
                     label: __( 'General' ),
-                    fields: CrudForm::fields(
-                        CrudInput::text(
-                            label: __( 'Id' ),
-                            name: 'id',
+                    fields: CrudForm::fields(                        
+                        CrudInput::searchSelect(
+                            label: __( 'Customer' ),
+                            name: 'customer_id',
                             validation: 'required',
+                            options: Helper::toJsOptions( User::all(), [ 'id', 'first_name' ] ),
                             description: __( 'Provide a name to the resource.' ),
                         ),
-                        CrudInput::text(
-                            label: __( 'Username' ),
-                            name: 'username',
+                        CrudInput::date(
+                            label: __( 'Payment Date' ),
+                            name: 'payment_date',
                             validation: 'required',
+                            value: $entry->delivery_time ?? ns()->date->now()->format( 'Y-m-d' ),
                             description: __( 'Provide a name to the resource.' ),
                         ),
-                        CrudInput::text(
-                            label: __( 'Order ID' ),
-                            name: 'order_id',
+                        CrudInput::select(
+                            label: __( 'Debt Remaining' ),
+                            name: 'debt_remaining',
                             validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Amount Due' ),
-                            name: 'amount_due',
-                            validation: 'required',
+                            options: Helper::toJsOptions( CustomerDebtSummary::all(), [ 'customer_id', 'total_debt' ] ),
                             description: __( 'Provide a name to the resource.' ),
                         ),
                         CrudInput::text(
@@ -222,44 +215,8 @@ class DebtCrud extends CrudService
                             name: 'amount_paid',
                             validation: 'required',
                             description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Remaining Debt' ),
-                            name: 'remaining_debt',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Due Date' ),
-                            name: 'due_date',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Paid Date' ),
-                            name: 'paid_date',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Author' ),
-                            name: 'author',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Created At' ),
-                            name: 'created_at',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Updated At' ),
-                            name: 'updated_at',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                                            )
+                        ),                        
+                            )
                 )
             )
         );
@@ -280,7 +237,7 @@ class DebtCrud extends CrudService
      * @param array of fields
      * @return array of fields
      */
-    public function filterPutInputs( array $inputs, CustomerDebt $entry )
+    public function filterPutInputs( array $inputs, CustomerDebtPayment $entry )
     {
         return $inputs;
     }
@@ -300,7 +257,7 @@ class DebtCrud extends CrudService
      * Trigger actions that will be executed 
      * after the entry has been created.
      */
-    public function afterPost( array $request, CustomerDebt $entry ): array
+    public function afterPost( array $request, CustomerDebtPayment $entry ): array
     {
         return $request;
     }
@@ -321,7 +278,7 @@ class DebtCrud extends CrudService
      * Trigger actions that are executed before
      * the crud entry is updated.
      */
-    public function beforePut( array $request, CustomerDebt $entry ): array
+    public function beforePut( array $request, CustomerDebtPayment $entry ): array
     {
         $this->allowedTo( 'update' );
 
@@ -332,7 +289,7 @@ class DebtCrud extends CrudService
      * This trigger actions that are executed after
      * the crud entry is successfully updated.
      */
-    public function afterPut( array $request, CustomerDebt $entry ): array
+    public function afterPut( array $request, CustomerDebtPayment $entry ): array
     {
         return $request;
     }
@@ -343,7 +300,7 @@ class DebtCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id, $model ): void
     {
-        if ( $namespace == 'customers.debts' ) {
+        if ( $namespace == 'customers.debt-payments' ) {
             /**
              *  Perform an action before deleting an entry
              *  In case something wrong, this response can be returned
@@ -367,38 +324,30 @@ class DebtCrud extends CrudService
     public function getColumns(): array
     {
         return CrudTable::columns(
-                        CrudTable::column( 
-                identifier: 'order_code', 
-                label: __( 'Code' ), 
-            ),
-                        CrudTable::column( 
-                identifier: 'customer_first_name', 
-                label: __( 'Name' ), 
+                        CrudTable::column(
+                identifier: 'id',
+                label: __( 'Id' ),
             ),
                         CrudTable::column(
-                identifier: 'amount_due',
-                label: __( 'Amount Due' ),
+                identifier: 'customer_id',
+                label: __( 'Customer ID' ),
+            ),
+                        CrudTable::column(
+                identifier: 'payment_date',
+                label: __( 'Payment Date' ),
             ),
                         CrudTable::column(
                 identifier: 'amount_paid',
                 label: __( 'Amount Paid' ),
             ),
                         CrudTable::column(
-                identifier: 'remaining_debt',
-                label: __( 'Remaining Debt' ),
+                identifier: 'debt_remaining',
+                label: __( 'Debt Remaining' ),
             ),
                         CrudTable::column(
-                identifier: 'due_date',
-                label: __( 'Due Date' ),
+                identifier: 'author',
+                label: __( 'Author' ),
             ),
-                        CrudTable::column(
-                identifier: 'paid_date',
-                label: __( 'Paid Date' ),
-            ),
-                        CrudTable::column( 
-                identifier: 'author_username', 
-                label: __( 'Author' ), 
-                width: '150px' ),
                         CrudTable::column(
                 identifier: 'created_at',
                 label: __( 'Created At' ),
@@ -428,7 +377,7 @@ class DebtCrud extends CrudService
             identifier: 'delete',
             label: __( 'Delete' ),
             type: 'DELETE',
-            url: ns()->url( '/api/crud/customers.debts/' . $entry->id ),
+            url: ns()->url( '/api/crud/customers.debt-payments/' . $entry->id ),
             confirm: [
                 'message'  =>  __( 'Would you like to delete this ?' ),
             ]
@@ -467,7 +416,7 @@ class DebtCrud extends CrudService
 
             foreach ( $request->input( 'entries' ) as $id ) {
                 $entity     =   $this->model::find( $id );
-                if ( $entity instanceof CustomerDebt ) {
+                if ( $entity instanceof CustomerDebtPayment ) {
                     $entity->delete();
                     $status[ 'success' ]++;
                 } else {
@@ -486,11 +435,11 @@ class DebtCrud extends CrudService
     public function getLinks(): array
     {
         return  CrudTable::links(
-            list:  ns()->url( 'dashboard/' . 'customers-debts' ),
-            create:  ns()->url( 'dashboard/' . 'customers-debts/create' ),
-            edit:  ns()->url( 'dashboard/' . 'customers-debts/edit/' ),
-            post:  ns()->url( 'api/crud/' . 'customers.debts' ),
-            put:  ns()->url( 'api/crud/' . 'customers.debts/{id}' . '' ),
+            list:  ns()->url( 'dashboard/' . 'customers-debt-payments' ),
+            create:  ns()->url( 'dashboard/' . 'customers-debt-payments/create' ),
+            edit:  ns()->url( 'dashboard/' . 'customers-debt-payments/edit/' ),
+            post:  ns()->url( 'api/crud/' . 'customers.debt-payments' ),
+            put:  ns()->url( 'api/crud/' . 'customers.debt-payments/{id}' . '' ),
         );
     }
 

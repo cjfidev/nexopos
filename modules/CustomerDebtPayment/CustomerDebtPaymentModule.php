@@ -1,10 +1,10 @@
 <?php
-namespace Modules\CustomerPaymentDebt;
+namespace Modules\CustomerDebtPayment;
 
 use Illuminate\Support\Facades\Event;
 use App\Services\Module;
 
-class CustomerPaymentDebtModule extends Module
+class CustomerDebtPaymentModule extends Module
 {
     public function __construct()
     {

@@ -169,7 +169,7 @@ export default {
         }
     },
     name: 'ns-crud',
-    mounted() {
+    mounted() {        
         if ( this.identifier !== undefined  ) {
             nsCrudHandler.defineInstance( this.identifier, this );
         }

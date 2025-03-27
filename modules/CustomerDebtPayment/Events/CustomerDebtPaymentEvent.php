@@ -1,5 +1,5 @@
 <?php
-namespace Modules\CustomerPaymentDebt\Events;
+namespace Modules\CustomerDebtPayment\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -8,7 +8,7 @@ use Illuminate\Queue\SerializesModels;
 /**
  * Register Event
 **/
-class CustomerPaymentDebtEvent
+class CustomerDebtPaymentEvent
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
