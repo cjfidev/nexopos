@@ -11,6 +11,7 @@ use App\Classes\CrudForm;
 use App\Exceptions\NotAllowedException;
 use TorMorten\Eventy\Facades\Events as Hook;
 use App\Models\CustomerDebt;
+use App\Services\Helper;
 use App\Models\User;
 
 class DebtCrud extends CrudService
@@ -193,22 +194,11 @@ class DebtCrud extends CrudService
                     identifier: 'general',
                     label: __( 'General' ),
                     fields: CrudForm::fields(
-                        CrudInput::text(
-                            label: __( 'Id' ),
-                            name: 'id',
+                        CrudInput::searchSelect(
+                            label: __( 'Customer' ),
+                            name: 'customer_id',
                             validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Username' ),
-                            name: 'username',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Order ID' ),
-                            name: 'order_id',
-                            validation: 'required',
+                            options: Helper::toJsOptions( User::all(), [ 'id', 'first_name' ] ),
                             description: __( 'Provide a name to the resource.' ),
                         ),
                         CrudInput::text(
@@ -216,50 +206,14 @@ class DebtCrud extends CrudService
                             name: 'amount_due',
                             validation: 'required',
                             description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Amount Paid' ),
-                            name: 'amount_paid',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Remaining Debt' ),
-                            name: 'remaining_debt',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
+                        ),                        
                         CrudInput::text(
                             label: __( 'Due Date' ),
                             name: 'due_date',
                             validation: 'required',
                             description: __( 'Provide a name to the resource.' ),
                         ),
-                        CrudInput::text(
-                            label: __( 'Paid Date' ),
-                            name: 'paid_date',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Author' ),
-                            name: 'author',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Created At' ),
-                            name: 'created_at',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                        CrudInput::text(
-                            label: __( 'Updated At' ),
-                            name: 'updated_at',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),
-                                            )
+                        )
                 )
             )
         );

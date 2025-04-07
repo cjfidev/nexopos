@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Http\Controllers\Controller;
 use Modules\CustomerDebt\Crud\DebtCrud;
 use App\Models\CustomerDebt;
+use App\Models\CustomerDebtSummary;
 
 class CustomerDebtController extends Controller
 {
@@ -49,6 +50,20 @@ class CustomerDebtController extends Controller
     {
         $debts = CustomerDebt::select('id')->get();
         return response()->json($debts);
+    }
+
+    public function getDebtSummary($customerId)
+    {
+        // Menyaring berdasarkan customer_id
+        $debtSummary = CustomerDebtSummary::where('customer_id', $customerId)->first();
+
+        // Mengecek apakah data ditemukan
+        if (!$debtSummary) {
+            return response()->json(['error' => 'Debt summary not found for this customer'], 404);
+        }
+
+        // Mengembalikan data summary utang dalam bentuk JSON
+        return response()->json($debtSummary);
     }
     
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CustomerDebtSummary;
+use Illuminate\Support\Facades\DB;
 
 class CustomerDebtSummaryService
 {
@@ -19,14 +20,24 @@ class CustomerDebtSummaryService
 
     public function reduceDebt($customerId, $amountToReduce)
     {
-        $summary = CustomerDebtSummary::where('customer_id', $customerId)->first();
-        
-        if ($summary) {
+        return DB::transaction(function() use ($customerId, $amountToReduce) {
+            $summary = CustomerDebtSummary::where('customer_id', $customerId)
+                ->lockForUpdate()
+                ->first();
+            
+            if (!$summary) {
+                throw new \Exception("Customer debt summary not found");
+            }
+            
+            if ($amountToReduce > $summary->total_debt) {
+                throw new \Exception("Reduction amount exceeds total debt");
+            }
+            
             $summary->total_debt = max(0, $summary->total_debt - $amountToReduce);
             $summary->author = auth()->id();
             $summary->save();
-        }
-        
-        return $summary;
+            
+            return $summary;
+        });
     }
 }

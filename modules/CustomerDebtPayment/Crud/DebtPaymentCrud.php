@@ -15,7 +15,9 @@ use App\Services\Helper;
 use App\Exceptions\NotAllowedException;
 use TorMorten\Eventy\Facades\Events as Hook;
 use App\Models\CustomerDebtPayment;
-
+use App\Services\CustomerDebtSummaryService;
+use App\Services\CustomerDebtPaymentService;
+use Illuminate\Support\Facades\DB;
 class DebtPaymentCrud extends CrudService
 {
     /**
@@ -181,7 +183,7 @@ class DebtPaymentCrud extends CrudService
             main: CrudInput::text(
                 label: __( 'Name' ),
                 name: 'name',
-                validation: 'required',
+                // validation: 'required',
                 description: __( 'Provide a name to the resource.' ),
             ),
             tabs: CrudForm::tabs(
@@ -203,12 +205,11 @@ class DebtPaymentCrud extends CrudService
                             value: $entry->delivery_time ?? ns()->date->now()->format( 'Y-m-d' ),
                             description: __( 'Provide a name to the resource.' ),
                         ),
-                        CrudInput::select(
-                            label: __( 'Debt Remaining' ),
-                            name: 'debt_remaining',
-                            validation: 'required',
-                            options: Helper::toJsOptions( CustomerDebtSummary::all(), [ 'customer_id', 'total_debt' ] ),
+                        CrudInput::text(
+                            label: __( 'Total Debt' ),
+                            name: 'total_debt',
                             description: __( 'Provide a name to the resource.' ),
+                            disabled: true
                         ),
                         CrudInput::text(
                             label: __( 'Amount Paid' ),
@@ -248,7 +249,30 @@ class DebtPaymentCrud extends CrudService
      */
     public function beforePost( array $request ): array
     {
+
         $this->allowedTo( 'create' );
+        
+        // Validasi customer exists
+        if (!User::where('id', $request['customer_id'])->exists()) {
+            throw new NotAllowedException(__('Selected customer does not exist.'));
+        }
+        
+        // Validasi jumlah pembayaran
+        if ($request['amount_paid'] <= 0) {
+            throw new NotAllowedException(__('Payment amount must be positive.'));
+        }
+        
+        // Dapatkan summary hutang
+        $debtSummary = CustomerDebtSummary::where('customer_id', $request['customer_id'])
+        ->firstOrFail();
+
+        // Validasi tidak melebihi hutang
+        if ($request['amount_paid'] > $debtSummary->total_debt) {
+            throw new NotAllowedException(__('Payment amount exceeds customer debt.'));
+        }
+        
+        // Set author
+        $request['author'] = Auth::id();
 
         return $request;
     }
@@ -259,6 +283,15 @@ class DebtPaymentCrud extends CrudService
      */
     public function afterPost( array $request, CustomerDebtPayment $entry ): array
     {
+        DB::transaction(function() use ($entry) {
+            $debtSummaryService = new CustomerDebtSummaryService();
+            $debtSummaryService->reduceDebt($entry->customer_id, $entry->amount_paid);
+            
+            $debtPaymentService = new CustomerDebtPaymentService();
+            $debtPaymentService->processPayment($entry->customer_id, $entry->amount_paid);
+            // Anda bisa tambahkan pencatatan transaksi/audit log di sini
+        });
+
         return $request;
     }
 
@@ -340,10 +373,10 @@ class DebtPaymentCrud extends CrudService
                 identifier: 'amount_paid',
                 label: __( 'Amount Paid' ),
             ),
-                        CrudTable::column(
-                identifier: 'debt_remaining',
-                label: __( 'Debt Remaining' ),
-            ),
+            //             CrudTable::column(
+            //     identifier: 'total_remaining_debt',
+            //     label: __( 'Remaining Debt' ),
+            // ),
                         CrudTable::column(
                 identifier: 'author',
                 label: __( 'Author' ),

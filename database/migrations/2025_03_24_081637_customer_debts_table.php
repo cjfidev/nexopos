@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal( 'amount_due', 15, 2 );
             $table->decimal( 'amount_paid', 15, 2 )->default( 0 );
             $table->decimal( 'remaining_debt', 15, 2 );
+            $table->integer( 'status' )->default( 0 );
             $table->date( 'due_date' )->nullable();
             $table->date( 'paid_date' )->nullable();
             $table->integer( 'author' );

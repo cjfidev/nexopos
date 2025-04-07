@@ -22,6 +22,8 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 
+
+
     public function registerCrud( $identifier )
     {
         switch( $identifier ) {

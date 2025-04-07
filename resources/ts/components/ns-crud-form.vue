@@ -215,12 +215,18 @@ export default {
             return form;
         },
         handleFieldChange( field, fields ) {
-            console.log(fields)
             if ( field.errors.length === 0 ) {
                 if (field.name === 'customer_id') {
-                    const debtRemainingField = fields.find(f => f.name === 'debt_remaining');
-                    if (debtRemainingField) {
-                        debtRemainingField.value = field.value;
+                    const totalDebtField = fields.find(f => f.name === 'total_debt');
+                    if (totalDebtField) {                                               
+                        nsHttpClient.get(`/api/customers-debts-summary/${field.value}`).subscribe({
+                        next: (result) => {                            
+                            totalDebtField.value = result.total_debt;
+                        },
+                        error: (error) => {
+                            console.log(error)
+                        }
+                    });
                     }
                 }
                 field.subject.next({ field, fields });
