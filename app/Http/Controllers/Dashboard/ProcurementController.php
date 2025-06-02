@@ -22,6 +22,7 @@ use App\Models\Unit;
 use App\Services\DateService;
 use App\Services\Options;
 use App\Services\ProcurementService;
+use App\Services\ProcurementReturnService;
 use App\Services\ProductService;
 use App\Services\Validation;
 use Illuminate\Database\Eloquent\Collection;
@@ -37,6 +38,7 @@ class ProcurementController extends DashboardController
 
     public function __construct(
         protected ProcurementService $procurementService,
+        protected ProcurementReturnService $procurementReturnService,
         protected ProductService $productService,
         protected Options $options,
         protected DateService $dateService
@@ -61,6 +63,13 @@ class ProcurementController extends DashboardController
     public function create( ProcurementRequest $request )
     {
         return $this->procurementService->create( $request->only( [
+            'general', 'name', 'products',
+        ] ) );
+    }
+
+    public function createReturn( ProcurementRequest $request )
+    {
+        return $this->procurementReturnService->create( $request->only( [
             'general', 'name', 'products',
         ] ) );
     }

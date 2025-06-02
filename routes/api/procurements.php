@@ -14,7 +14,6 @@ Route::post( 'procurements/{id}/products', [ ProcurementController::class, 'proc
 Route::post( 'procurements', [ ProcurementController::class, 'create' ] );
 Route::post( 'procurements/products/search-procurement-product', [ ProcurementController::class, 'searchProcurementProduct' ] );
 Route::post( 'procurements/products/search-product', [ ProcurementController::class, 'searchProduct' ] );
-Route::post( 'procurements/products/search-procurement-return', [ ProcurementController::class, 'searchProcurementReturn' ] );
 
 Route::put( 'procurements/{procurement}', [ ProcurementController::class, 'edit' ] );
 Route::put( 'procurements/{procurement}/change-payment-status', [ ProcurementController::class, 'changePaymentStatus' ] );
@@ -23,3 +22,9 @@ Route::put( 'procurements/{id}/products', [ ProcurementController::class, 'bulkU
 
 Route::delete( 'procurements/{id}/products/{product_id}', [ ProcurementController::class, 'deleteProcurementProduct' ] );
 Route::delete( 'procurements/{id}', [ ProcurementController::class, 'deleteProcurement' ] )->where( 'id', '[0-9]+' );
+
+// procurement return
+Route::post( 'procurements-returns/preload', [ ProcurementController::class, 'storePreloadReturn' ] );
+Route::post( 'procurements-returns/{id}/products', [ ProcurementController::class, 'procureReturn' ] );
+Route::post( 'procurements-returns', [ ProcurementController::class, 'createReturn' ] );
+Route::post( 'procurements/products/search-procurement-return', [ ProcurementController::class, 'searchProcurementReturn' ] );

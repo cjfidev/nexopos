@@ -181,9 +181,8 @@ class DebtPaymentCrud extends CrudService
     {
         return CrudForm::form(
             main: CrudInput::text(
-                label: __( 'Name' ),
-                name: 'name',
-                // validation: 'required',
+                label: __( 'Amount Paid' ),
+                name: 'amount_paid',                
                 description: __( 'Provide a name to the resource.' ),
             ),
             tabs: CrudForm::tabs(
@@ -210,13 +209,7 @@ class DebtPaymentCrud extends CrudService
                             name: 'total_debt',
                             description: __( 'Provide a name to the resource.' ),
                             disabled: true
-                        ),
-                        CrudInput::text(
-                            label: __( 'Amount Paid' ),
-                            name: 'amount_paid',
-                            validation: 'required',
-                            description: __( 'Provide a name to the resource.' ),
-                        ),                        
+                        ),                      
                             )
                 )
             )

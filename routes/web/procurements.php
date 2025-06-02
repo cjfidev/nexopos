@@ -9,4 +9,5 @@ Route::get( '/procurements/products', [ ProcurementController::class, 'getProcur
 Route::get( '/procurements/products/edit/{product}', [ ProcurementController::class, 'editProcurementProduct' ] )->name( ns()->routeName( 'ns.procurement-edit-products' ) ); // @todo update
 Route::get( '/procurements/edit/{procurement}', [ ProcurementController::class, 'updateProcurement' ] )->name( ns()->routeName( 'ns.procurement-edit' ) ); // @todo update
 Route::get( '/procurements/edit/{procurement}/invoice', [ ProcurementController::class, 'procurementInvoice' ] )->name( ns()->routeName( 'ns.procurement-invoice' ) ); // @todo update
+
 Route::get( '/procurements/returns/create', [ ProcurementController::class, 'createProcurementReturn' ] )->name( ns()->routeName( 'ns.procurement-returns-create' ) ); // @todo update

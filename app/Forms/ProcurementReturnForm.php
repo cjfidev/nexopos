@@ -52,7 +52,7 @@ class ProcurementReturnForm extends SettingsPage
                 ],
                 'quantity' => [
                     'label' => __( 'Quantity' ),
-                    'type' => 'text',
+                    'type' => 'editable_number',
                 ],
                 'total_purchase_price' => [
                     'label' => __( 'Total Price' ),

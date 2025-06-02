@@ -349,6 +349,11 @@ class ProcurementCrud extends CrudService
                 '$direction' => '',
                 '$sort' => false,
             ],
+            'invoice_reference' => [
+                'label' => __( 'Invoice Reference' ),
+                '$direction' => '',
+                '$sort' => false,
+            ],
             'value' => [
                 'label' => __( 'Sale Value' ),
                 '$direction' => '',

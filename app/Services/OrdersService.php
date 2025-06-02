@@ -928,8 +928,8 @@ class OrdersService
                 $customerDebtService->createDebt($debtData);
                 
                 // Update or create the summary
-                $debtSummaryService = new CustomerDebtSummaryService();
-                $debtSummaryService->updateOrCreateSummary($order->customer_id, $order->total);
+                // $debtSummaryService = new CustomerDebtSummaryService();
+                // $debtSummaryService->updateOrCreateSummary($order->customer_id, $order->total);
                 
             } catch (\Exception $e) {
                 \Log::error('Failed to create debt for order payment', [

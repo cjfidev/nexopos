@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('nexopos_customers_debt_payments', function (Blueprint $table) {
             $table->id();
             $table->integer( 'customer_id' );
-            $table->string( 'name' )->nullable();
             $table->date( 'payment_date' )->nullable();
             $table->decimal( 'amount_paid', 15, 2 )->default( 0 );
             $table->decimal( 'total_debt', 15, 2 )->default( 0 );

@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use stdClass;
 
-class ProcurementService
+class ProcurementReturnService
 {
     protected $providerService;
 

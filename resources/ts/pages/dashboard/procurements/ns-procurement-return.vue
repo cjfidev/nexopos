@@ -264,7 +264,7 @@ export default {
         updateLine( index ) {
             const product   =   this.form.products[ index ];
             const taxGroup  =   this.taxes.filter( taxGroup => taxGroup.id === product.procurement.tax_group_id );            
-            if ( parseFloat( product.procurement.purchase_price_edit ) > 0 && parseFloat( product.procurement.quantity ) > 0 ) {
+            if ( parseFloat( product.procurement.purchase_price ) > 0 && parseFloat( product.procurement.quantity ) > 0 ) {
                 /**
                  * if some tax group is provided
                  * then let's compute all the grouped taxes
@@ -273,7 +273,7 @@ export default {
                     const totalTaxes    =   taxGroup[0].taxes.map( tax => {
                         return Tax.getTaxValue(
                             product.procurement.tax_type,
-                            product.procurement.purchase_price_edit,
+                            product.procurement.purchase_price,
                             parseFloat( tax.rate )
                         );
                     });
@@ -281,22 +281,21 @@ export default {
                     product.procurement.tax_value               =   ( totalTaxes.reduce( ( b, a ) => b + a ) );
 
                     if ( product.procurement.tax_type === 'inclusive' ) {
-                        product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price_edit ) - product.procurement.tax_value;
-                        product.procurement.gross_purchase_price    =   parseFloat( product.procurement.purchase_price_edit );
+                        product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price ) - product.procurement.tax_value;
+                        product.procurement.gross_purchase_price    =   parseFloat( product.procurement.purchase_price );
                         product.procurement.purchase_price          =   parseFloat( product.procurement.gross_purchase_price );
                     } else {
-                        product.procurement.gross_purchase_price    =   parseFloat( product.procurement.purchase_price_edit ) + product.procurement.tax_value;
-                        product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price_edit );
+                        product.procurement.gross_purchase_price    =   parseFloat( product.procurement.purchase_price ) + product.procurement.tax_value;
+                        product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price );
                         product.procurement.purchase_price          =   parseFloat( product.procurement.gross_purchase_price );
                     }
 
                 } else {
-                    product.procurement.gross_purchase_price    =   parseFloat( product.procurement.purchase_price_edit );
-                    product.procurement.purchase_price          =   parseFloat( product.procurement.purchase_price_edit );
-                    product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price_edit );
+                    product.procurement.gross_purchase_price    =   parseFloat( product.procurement.purchase_price );
+                    product.procurement.purchase_price          =   parseFloat( product.procurement.purchase_price );
+                    product.procurement.net_purchase_price      =   parseFloat( product.procurement.purchase_price );
                     product.procurement.tax_value               =   0;
                 }
-                // console.log(product.unit_quantities[0].quantity)
                 product.procurement.tax_value                   =   product.procurement.tax_value * parseFloat( product.procurement.quantity );
                 product.procurement.total_purchase_price        =   product.procurement.purchase_price * parseFloat( product.procurement.quantity );
             } 
@@ -581,35 +580,33 @@ export default {
                 }
             }
 
-            console.log(data, this.submitUrl);
+            const popup = Popup.show( nsPOSLoadingPopup );
 
-            // const popup = Popup.show( nsPOSLoadingPopup );
+            nsHttpClient[ this.submitMethod ? this.submitMethod.toLowerCase() : 'post' ]( this.submitUrl, data )
+                .subscribe({
+                    next: data => {                        
+                        if ( data.status === 'success' ) {
+                            this.shouldPreventAccidentalRefresh.next(false);
+                            return document.location   =   this.returnUrl;
+                        }
 
-            // nsHttpClient[ this.submitMethod ? this.submitMethod.toLowerCase() : 'post' ]( this.submitUrl, data )
-            //     .subscribe({
-            //         next: data => {                        
-            //             if ( data.status === 'success' ) {
-            //                 this.shouldPreventAccidentalRefresh.next(false);
-            //                 return document.location   =   this.returnUrl;
-            //             }
+                        popup.close();
+                        this.formValidation.enableForm( this.form );
+                    }, 
+                    error: ( error ) => {
+                        popup.close();
 
-            //             popup.close();
-            //             this.formValidation.enableForm( this.form );
-            //         }, 
-            //         error: ( error ) => {
-            //             popup.close();
+                        nsSnackBar.error( error.message, undefined, {
+                            duration: 5000
+                        }).subscribe();
 
-            //             nsSnackBar.error( error.message, undefined, {
-            //                 duration: 5000
-            //             }).subscribe();
-
-            //             this.formValidation.enableForm( this.form );
+                        this.formValidation.enableForm( this.form );
                         
-            //             if ( error.errors ) {
-            //                 this.formValidation.triggerError( this.form, error.errors );
-            //             }
-            //         }
-            //     })
+                        if ( error.errors ) {
+                            this.formValidation.triggerError( this.form, error.errors );
+                        }
+                    }
+                })
         },
         deleteProduct( index ) {
             this.form.products.splice( index, 1 );
@@ -726,8 +723,7 @@ export default {
                     });
                 });
 
-                entry[ key ]    =   result;
-
+                entry[ key ] = result;
                 this.updateLine( index );
             } catch ( exception ) {
                 console.log({ exception })
@@ -861,7 +857,7 @@ export default {
                                         <input
                                             v-model="searchValue"
                                             type="text" 
-                                            :placeholder="__( 'SKU, Barcode, Name' )"
+                                            :placeholder="__( 'Invoice Reference' )"
                                             class="flex-auto text-primary outline-none h-10 px-2">
                                     </div>
                                     <div class="h-0">
@@ -934,7 +930,12 @@ export default {
                                                     <td :key="key" v-if="column.type === 'number'" class="p-2 text-primary border">
                                                         <div class="flex justify-center">
                                                             <span class="text-sm text-primary">{{ product.procurement[ key ] }}</span>
-                                                        </div>
+                                                        </div>                                                                                                         
+                                                    </td>
+                                                    <td :key="key" v-if="column.type === 'editable_number'" @click="triggerKeyboard( product.procurement, key, index )" class="p-2 text-primary border">
+                                                        <div class="flex justify-center">
+                                                            <span class="outline-none border-dashed py-1 border-b border-info-primary text-sm">{{ product.procurement[ key ] }}</span>
+                                                        </div>                                                                                                         
                                                     </td>
                                                 </template>
                                             </tr>

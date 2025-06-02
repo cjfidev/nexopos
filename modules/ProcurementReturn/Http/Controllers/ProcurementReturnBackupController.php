@@ -13,7 +13,7 @@ use App\Http\Controllers\Controller;
 use Modules\ProcurementReturn\Crud\ProcurementReturnCrud;
 use Modules\ProcurementReturn\Models\ProcurementReturn;
 
-class ProcurementReturnController extends Controller
+class ProcurementBackupReturnController extends Controller
 {
     /**
      * Main Page

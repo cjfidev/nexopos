@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CustomerDebtPayment;
 use Illuminate\Support\Facades\DB;
+use App\Models\Customer;
 use App\Models\CustomerDebt;
 use App\Models\CustomerDebtSummary;
 use App\Exceptions\NotAllowedException;
@@ -29,6 +30,11 @@ class CustomerDebtPaymentService
             // if ($paymentAmount > $summary->total_debt) {
             //     throw new NotAllowedException(__('Payment exceeds total debt.'));
             // }
+
+            // update credit limit Customer menggunakan customer_id
+            $customer = Customer::find($customerId);
+            $customer->account_amount += $paymentAmount;
+            $customer->save();
             
             // Dapatkan semua hutang yang belum lunas (status 0)
             $debts = CustomerDebt::where('customer_id', $customerId)
