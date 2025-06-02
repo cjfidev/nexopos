@@ -333,6 +333,13 @@ class CustomerCrud extends CrudService
             $inputs[ 'password' ] = Hash::make( Str::random( 10 ) );
         }
 
+        // Jika customer_no kosong, isi otomatis
+        if (empty($inputs['customer_no'])) {
+            $lastCustomer = Customer::orderBy('id', 'desc')->first();
+            $nextId = $lastCustomer ? $lastCustomer->id + 1 : 1;
+            $inputs['customer_no'] = 'CUST-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
+        }
+
         /**
          * if no email is provided, then we'll generate a random
          * email for the customer based on the domain and the last customer id.
@@ -516,6 +523,13 @@ class CustomerCrud extends CrudService
      */
     public function setActions( CrudEntry $entry ): CrudEntry
     {
+        $entry->action(
+            identifier: 'print_customer_barcode',
+            label: __( 'Print Barcode' ),
+            type: 'GOTO',
+            url: ns()->url( 'dashboard/customers/' . $entry->id . '/print-barcode' ),
+        );
+
         $entry->action(
             identifier: 'edit_customers_group',
             label: __( 'Edit' ),
