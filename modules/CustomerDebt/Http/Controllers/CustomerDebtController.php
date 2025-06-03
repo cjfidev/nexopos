@@ -13,6 +13,8 @@ use App\Http\Controllers\Controller;
 use Modules\CustomerDebt\Crud\DebtCrud;
 use App\Models\CustomerDebt;
 use App\Models\CustomerDebtSummary;
+use App\Models\CustomerAccountHistory;
+use DB;
 
 class CustomerDebtController extends Controller
 {
@@ -54,16 +56,32 @@ class CustomerDebtController extends Controller
 
     public function getDebtSummary($customerId)
     {
-        // Menyaring berdasarkan customer_id
-        $debtSummary = CustomerDebtSummary::where('customer_id', $customerId)->first();
+        // Ambil entri 'add' terbaru sebagai dasar limit kredit
+        $latestAddOperation = CustomerAccountHistory::where('customer_id', $customerId)
+            ->where('operation', 'add')
+            ->latest('created_at')
+            ->first();
 
-        // Mengecek apakah data ditemukan
-        if (!$debtSummary) {
-            return response()->json(['error' => 'Debt summary not found for this customer'], 404);
+        if (!$latestAddOperation) {
+            return response()->json(0);
         }
 
-        // Mengembalikan data summary utang dalam bentuk JSON
-        return response()->json($debtSummary);
+        // Limit kredit dari entri 'add' terbaru
+        $limitCredit = $latestAddOperation->amount;
+
+        // Ambil semua transaksi setelah entri 'add' terbaru
+        $transactions = CustomerAccountHistory::where('customer_id', $customerId)
+            ->where('created_at', '>', $latestAddOperation->created_at)
+            ->whereIn('operation', ['payment', 'deduct'])
+            ->get();
+
+        // Hitung total pembayaran dan pengurangan manual
+        $totalPaid = $transactions->sum('amount');
+
+        // Hitung sisa piutang
+        $totalDebt = $limitCredit - $totalPaid;
+
+        return response()->json($totalPaid);
     }
     
 }

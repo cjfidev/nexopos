@@ -221,7 +221,7 @@ export default {
                     if (totalDebtField) {                                               
                         nsHttpClient.get(`/api/customers-debts-summary/${field.value}`).subscribe({
                         next: (result) => {                            
-                            totalDebtField.value = result.total_debt;
+                            totalDebtField.value = result;
                         },
                         error: (error) => {
                             console.log(error)
