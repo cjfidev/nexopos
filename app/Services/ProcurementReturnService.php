@@ -3,19 +3,19 @@
 namespace App\Services;
 
 use App\Classes\Hook;
-use App\Events\ProcurementAfterCreateEvent;
-use App\Events\ProcurementAfterDeleteProductEvent;
-use App\Events\ProcurementAfterHandledEvent;
-use App\Events\ProcurementAfterSaveProductEvent;
-use App\Events\ProcurementAfterUpdateEvent;
-use App\Events\ProcurementBeforeCreateEvent;
-use App\Events\ProcurementBeforeDeleteProductEvent;
-use App\Events\ProcurementBeforeHandledEvent;
-use App\Events\ProcurementBeforeUpdateEvent;
+use App\Events\ProcurementReturnAfterCreateEvent;
+use App\Events\ProcurementReturnAfterDeleteProductEvent;
+use App\Events\ProcurementReturnAfterHandledEvent;
+use App\Events\ProcurementReturnAfterSaveProductEvent;
+use App\Events\ProcurementReturnAfterUpdateEvent;
+use App\Events\ProcurementReturnBeforeCreateEvent;
+use App\Events\ProcurementReturnBeforeDeleteProductEvent;
+use App\Events\ProcurementReturnBeforeHandledEvent;
+use App\Events\ProcurementReturnBeforeUpdateEvent;
 use App\Exceptions\NotAllowedException;
 use App\Exceptions\NotFoundException;
-use App\Models\Procurement;
-use App\Models\ProcurementProduct;
+use App\Models\ProcurementReturn;
+use App\Models\ProcurementReturnProduct;
 use App\Models\Product;
 use App\Models\ProductHistory;
 use App\Models\ProductUnitQuantity;
@@ -63,33 +63,33 @@ class ProcurementReturnService
     }
 
     /**
-     * get a single procurement
-     * or retrieve a list of procurement
+     * get a single procurementreturn
+     * or retrieve a list of procurementreturn
      *
-     * @param int procurement id
-     * @return Collection|Procurement
+     * @param int procurementreturn id
+     * @return Collection|ProcurementReturn
      */
     public function get( $id = null )
     {
         if ( $id !== null ) {
-            $provider = Procurement::find( $id );
+            $provider = ProcurementReturn::find( $id );
 
-            if ( ! $provider instanceof Procurement ) {
-                throw new Exception( __( 'Unable to find the requested procurement using the provided identifier.' ) );
+            if ( ! $provider instanceof ProcurementReturn ) {
+                throw new Exception( __( 'Unable to find the requested procurementreturn using the provided identifier.' ) );
             }
 
             return $provider;
         }
 
-        return Procurement::get();
+        return ProcurementReturn::get();
     }
 
-    public function procurementName()
+    public function procurementreturnName()
     {
-        $lastProcurement = Procurement::orderBy( 'id', 'desc' )->first();
+        $lastProcurementReturn = ProcurementReturn::orderBy( 'id', 'desc' )->first();
 
-        if ( $lastProcurement instanceof Procurement ) {
-            $number = str_pad( $lastProcurement->id + 1, 5, '0', STR_PAD_LEFT );
+        if ( $lastProcurementReturn instanceof ProcurementReturn ) {
+            $number = str_pad( $lastProcurementReturn->id + 1, 5, '0', STR_PAD_LEFT );
         } else {
             $number = str_pad( 1, 5, '0', STR_PAD_LEFT );
         }
@@ -98,10 +98,10 @@ class ProcurementReturnService
     }
 
     /**
-     * create a procurement
+     * create a procurementreturn
      * using the provided informations
      *
-     * @param array procurement data
+     * @param array procurementreturn data
      * @return array|Exception
      */
     public function create( $data )
@@ -120,36 +120,36 @@ class ProcurementReturnService
 
         /**
          * We'll create a new instance
-         * of the procurement
+         * of the procurementreturn
          *
-         * @param Procurement
+         * @param ProcurementReturn
          */
-        $procurement = new Procurement;
+        $procurementreturn = new ProcurementReturn;
 
         /**
          * we'll make sure to trigger some event before
-         * performing some change on the procurement
+         * performing some change on the procurementreturn
          */
-        event( new ProcurementBeforeCreateEvent( $procurement, $data ) );
+        event( new ProcurementReturnBeforeCreateEvent( $procurementreturn, $data ) );
 
         /**
-         * We don't want the event ProcurementBeforeCreateEvent
-         * and ProcurementAfterCreateEvent to trigger while saving
+         * We don't want the event ProcurementReturnBeforeCreateEvent
+         * and ProcurementReturnAfterCreateEvent to trigger while saving
          */
-        Procurement::withoutEvents( function () use ( $procurement, $data ) {
-            $procurement->name = $data[ 'name' ] ?: $this->procurementName();
+        ProcurementReturn::withoutEvents( function () use ( $procurementreturn, $data ) {
+            $procurementreturn->name = $data[ 'name' ] ?: $this->procurementreturnName();
 
             foreach ( $data[ 'general' ] as $field => $value ) {
-                $procurement->$field = $value;
+                $procurementreturn->$field = $value;
             }
 
-            if ( ! empty( $procurement->created_at ) || ! empty( $procurement->updated_at ) ) {
-                $procurement->timestamps = false;
+            if ( ! empty( $procurementreturn->created_at ) || ! empty( $procurementreturn->updated_at ) ) {
+                $procurementreturn->timestamps = false;
             }
 
-            $procurement->author = Auth::id();
-            $procurement->cost = 0;
-            $procurement->save();
+            $procurementreturn->author = Auth::id();
+            $procurementreturn->cost = 0;
+            $procurementreturn->save();
         } );
 
         /**
@@ -157,29 +157,29 @@ class ProcurementReturnService
          * This doesn't affect the stock but only store the product
          */
         if ( $data[ 'products' ] ) {
-            $this->saveProducts( $procurement, collect( $data[ 'products' ] ) );
+            $this->saveProducts( $procurementreturn, collect( $data[ 'products' ] ) );
         }
 
         /**
          * We can now safely trigger the event here
          * that will ensure correct computing
          */
-        event( new ProcurementAfterCreateEvent( $procurement ) );
+        event( new ProcurementReturnAfterCreateEvent( $procurementreturn ) );
 
         return [
             'status' => 'success',
-            'message' => __( 'The procurement has been created.' ),
+            'message' => __( 'The procurementreturn has been created.' ),
             'data' => [
-                'products' => $procurement->products,
-                'procurement' => $procurement,
+                'products' => $procurementreturn->products,
+                'procurementreturn' => $procurementreturn,
             ],
         ];
     }
 
     /**
-     * Editing a specific procurement using the provided informations
+     * Editing a specific procurementreturn using the provided informations
      *
-     * @param int procurement id
+     * @param int procurementreturn id
      * @param array data to update
      * @return array
      */
@@ -202,115 +202,115 @@ class ProcurementReturnService
             throw new Exception( __( 'Unable to find the assigned provider.' ) );
         }
 
-        $procurement = Procurement::findOrFail( $id );
+        $procurementreturn = ProcurementReturn::findOrFail( $id );
 
         /**
          * we'll make sure to trigger some event before
-         * performing some change on the procurement
+         * performing some change on the procurementreturn
          */
-        event( new ProcurementBeforeUpdateEvent( $procurement ) );
+        event( new ProcurementReturnBeforeUpdateEvent( $procurementreturn ) );
 
         /**
-         * We won't dispatch the even while savin the procurement
+         * We won't dispatch the even while savin the procurementreturn
          * however we'll do that once the product has been stored.
          */
-        Procurement::withoutEvents( function () use ( $data, $procurement ) {
-            if ( $procurement->delivery_status === 'stocked' ) {
-                throw new Exception( __( 'Unable to edit a procurement that has already been stocked. Please consider performing and stock adjustment.' ) );
+        ProcurementReturn::withoutEvents( function () use ( $data, $procurementreturn ) {
+            if ( $procurementreturn->delivery_status === 'stocked' ) {
+                throw new Exception( __( 'Unable to edit a procurementreturn that has already been stocked. Please consider performing and stock adjustment.' ) );
             }
 
-            $procurement->name = $data[ 'name' ];
+            $procurementreturn->name = $data[ 'name' ];
 
             foreach ( $data[ 'general' ] as $field => $value ) {
-                $procurement->$field = $value;
+                $procurementreturn->$field = $value;
             }
 
-            if ( ! empty( $procurement->created_at ) || ! empty( $procurement->updated_at ) ) {
-                $procurement->timestamps = false;
+            if ( ! empty( $procurementreturn->created_at ) || ! empty( $procurementreturn->updated_at ) ) {
+                $procurementreturn->timestamps = false;
             }
 
-            $procurement->author = Auth::id();
-            $procurement->cost = 0;
-            $procurement->save();
+            $procurementreturn->author = Auth::id();
+            $procurementreturn->cost = 0;
+            $procurementreturn->save();
         } );
 
         /**
          * We can now safely save
-         * the procurement products
+         * the procurementreturn products
          */
         if ( $data[ 'products' ] ) {
-            $this->saveProducts( $procurement, collect( $data[ 'products' ] ) );
+            $this->saveProducts( $procurementreturn, collect( $data[ 'products' ] ) );
         }
 
         /**
          * we want to dispatch the event
          * only when the product has been created
          */
-        event( new ProcurementAfterUpdateEvent( $procurement ) );
+        event( new ProcurementReturnAfterUpdateEvent( $procurementreturn ) );
 
         return [
             'status' => 'success',
             'message' => __( 'The provider has been edited.' ),
-            'data' => compact( 'procurement' ),
+            'data' => compact( 'procurementreturn' ),
         ];
     }
 
     /**
-     * delete a specific procurement
+     * delete a specific procurementreturn
      * using the provided id
      *
-     * @param int procurement id
+     * @param int procurementreturn id
      * @return void
      */
     public function delete( $id )
     {
-        $procurement = Procurement::find( $id );
+        $procurementreturn = ProcurementReturn::find( $id );
 
-        if ( ! $procurement instanceof Procurement ) {
-            throw new Exception( 'Unable to find the requested procurement using the provided id.' );
+        if ( ! $procurementreturn instanceof ProcurementReturn ) {
+            throw new Exception( 'Unable to find the requested procurementreturn using the provided id.' );
         }
 
-        $procurement->delete();
+        $procurementreturn->delete();
 
         return [
             'status' => 'success',
-            'message' => __( 'The procurement has been deleted.' ),
+            'message' => __( 'The procurementreturn has been deleted.' ),
         ];
     }
 
     /**
      * Attempt a product stock removal
-     * if the procurement has been stocked
+     * if the procurementreturn has been stocked
      *
      * @throws NotAllowedException
      */
-    public function attemptProductsStockRemoval( Procurement $procurement ): void
+    public function attemptProductsStockRemoval( ProcurementReturn $procurementreturn ): void
     {
-        if ( $procurement->delivery_status === 'stocked' ) {
-            $procurement->products->each( function ( ProcurementProduct $procurementProduct ) {
+        if ( $procurementreturn->delivery_status === 'stocked' ) {
+            $procurementreturn->products->each( function ( ProcurementReturnProduct $procurementreturnProduct ) {
                 /**
                  * We'll handle products that was converted a bit
                  * differently to ensure converted product inventory is taken in account.
                  */
-                if ( empty( $procurementProduct->convert_unit_id ) ) {
-                    $unitQuantity = ProductUnitQuantity::withProduct( $procurementProduct->product_id )
-                        ->withUnit( $procurementProduct->unit_id )
+                if ( empty( $procurementreturnProduct->convert_unit_id ) ) {
+                    $unitQuantity = ProductUnitQuantity::withProduct( $procurementreturnProduct->product_id )
+                        ->withUnit( $procurementreturnProduct->unit_id )
                         ->first();
 
-                    $quantity = $procurementProduct->quantity;
-                    $unitName = $procurementProduct->unit->name;
+                    $quantity = $procurementreturnProduct->quantity;
+                    $unitName = $procurementreturnProduct->unit->name;
                 } else {
-                    $fromUnit = $procurementProduct->unit;
-                    $toUnit = Unit::find( $procurementProduct->convert_unit_id );
+                    $fromUnit = $procurementreturnProduct->unit;
+                    $toUnit = Unit::find( $procurementreturnProduct->convert_unit_id );
 
                     $quantity = $this->unitService->getConvertedQuantity(
                         from: $fromUnit,
                         to: $toUnit,
-                        quantity: $procurementProduct->quantity
+                        quantity: $procurementreturnProduct->quantity
                     );
 
                     $unitName = $toUnit->name;
-                    $unitQuantity = ProductUnitQuantity::withProduct( $procurementProduct->product_id )
+                    $unitQuantity = ProductUnitQuantity::withProduct( $procurementreturnProduct->product_id )
                         ->withUnit( $toUnit->id )
                         ->first();
                 }
@@ -319,8 +319,8 @@ class ProcurementReturnService
                     if ( floatval( $unitQuantity->quantity ) - floatval( $quantity ) < 0 ) {
                         throw new NotAllowedException(
                             sprintf(
-                                __( 'Unable to delete the procurement as there is not enough stock remaining for "%s" on unit "%s". This likely means the stock count has changed either with a sale, adjustment after the procurement has been stocked.' ),
-                                $procurementProduct->product->name,
+                                __( 'Unable to delete the procurementreturn as there is not enough stock remaining for "%s" on unit "%s". This likely means the stock count has changed either with a sale, adjustment after the procurementreturn has been stocked.' ),
+                                $procurementreturnProduct->product->name,
                                 $unitName
                             )
                         );
@@ -331,47 +331,47 @@ class ProcurementReturnService
     }
 
     /**
-     * This will delete product available on a procurement
+     * This will delete product available on a procurementreturn
      * and dispatch some events before and after that occurs.
      */
-    public function deleteProcurementProducts( Procurement $procurement ): void
+    public function deleteProcurementReturnProducts( ProcurementReturn $procurementreturn ): void
     {
-        $procurement->products->each( function ( ProcurementProduct $product ) use ( $procurement ) {
-            $this->deleteProduct( $product, $procurement );
+        $procurementreturn->products->each( function ( ProcurementReturnProduct $product ) use ( $procurementreturn ) {
+            $this->deleteProduct( $product, $procurementreturn );
         } );
     }
 
     /**
      * This helps to compute the unit value and the total cost
-     * of a procurement product. It return various value as an array of
+     * of a procurementreturn product. It return various value as an array of
      * the product updated along with an array of errors.
      */
-    private function __computeProcurementProductValues( array $data )
+    private function __computeProcurementReturnProductValues( array $data )
     {
         /**
-         * @var ProcurementProduct $procurementProduct
+         * @var ProcurementReturnProduct $procurementreturnProduct
          * @var $storeUnitReference
-         * @var Procurement $procurement
+         * @var ProcurementReturn $procurementreturn
          * @var $itemsToSave
          * @var $item
          */
         extract( $data, EXTR_REFS );
 
         if ( $item->purchase_unit_type === 'unit' ) {
-            extract( $this->__procureForSingleUnit( compact( 'procurementProduct', 'storedUnitReference', 'itemsToSave', 'item' ) ) );
+            extract( $this->__procureForSingleUnit( compact( 'procurementreturnProduct', 'storedUnitReference', 'itemsToSave', 'item' ) ) );
         } elseif ( $item->purchase_unit_type === 'unit-group' ) {
-            if ( ! isset( $procurementProduct->unit_id ) ) {
+            if ( ! isset( $procurementreturnProduct->unit_id ) ) {
                 /**
                  * this is made to ensure
                  * we have a self explanatory error,
                  * that describe why a product couldn't be processed
                  */
-                $keys = array_keys( (array) $procurementProduct );
+                $keys = array_keys( (array) $procurementreturnProduct );
 
                 foreach ( $keys as $key ) {
                     if ( in_array( $key, [ 'id', 'sku', 'barcode' ] ) ) {
                         $argument = $key;
-                        $identifier = $procurementProduct->$key;
+                        $identifier = $procurementreturnProduct->$key;
                         break;
                     }
                 }
@@ -383,7 +383,7 @@ class ProcurementReturnService
             }
 
             try {
-                extract( $this->__procureForUnitGroup( compact( 'procurementProduct', 'storedunitReference', 'itemsToSave', 'item' ) ) );
+                extract( $this->__procureForUnitGroup( compact( 'procurementreturnProduct', 'storedunitReference', 'itemsToSave', 'item' ) ) );
             } catch ( Exception $exception ) {
                 $errors[] = [
                     'status' => 'error',
@@ -402,13 +402,13 @@ class ProcurementReturnService
      * This only save the product
      * but doesn't affect the stock.
      */
-    public function saveProducts( Procurement $procurement, Collection $products )
+    public function saveProducts( ProcurementReturn $procurementreturn, Collection $products )
     {
         /**
          * We'll just make sure to have a reference
          * of all the product that has been procured.
          */
-        $procuredProducts = $products->map( function ( $procuredProduct ) use ( $procurement ) {
+        $procuredProducts = $products->map( function ( $procuredProduct ) use ( $procurementreturn ) {
             $product = Product::find( $procuredProduct[ 'product_id' ] );
 
             if ( ! $product instanceof Product ) {
@@ -428,66 +428,66 @@ class ProcurementReturnService
              * We'll find some record having an id set to 0
              * as not result will pop, that will create a new instance.
              */
-            $procurementProduct = ProcurementProduct::find( $procuredProduct[ 'id' ] ?? 0 );
+            $procurementreturnProduct = ProcurementReturnProduct::find( $procuredProduct[ 'id' ] ?? 0 );
 
-            if ( ! $procurementProduct instanceof ProcurementProduct ) {
-                $procurementProduct = new ProcurementProduct;
+            if ( ! $procurementreturnProduct instanceof ProcurementReturnProduct ) {
+                $procurementreturnProduct = new ProcurementReturnProduct;
             }
 
             /**
              * @todo these value might also
              * be calculated automatically.
              */
-            $procurementProduct->name = $product->name;
-            $procurementProduct->gross_purchase_price = $procuredProduct[ 'gross_purchase_price' ];
-            $procurementProduct->net_purchase_price = $procuredProduct[ 'net_purchase_price' ];
-            $procurementProduct->procurement_id = $procurement->id;
-            $procurementProduct->product_id = $procuredProduct[ 'product_id' ];
-            $procurementProduct->purchase_price = $procuredProduct[ 'purchase_price' ];
-            $procurementProduct->quantity = $procuredProduct[ 'quantity' ];
-            $procurementProduct->available_quantity = $procuredProduct[ 'quantity' ];
-            $procurementProduct->tax_group_id = $procuredProduct[ 'tax_group_id' ] ?? 0;
-            $procurementProduct->tax_type = $procuredProduct[ 'tax_type' ];
-            $procurementProduct->tax_value = $procuredProduct[ 'tax_value' ];
-            $procurementProduct->expiration_date = $procuredProduct[ 'expiration_date' ] ?? null;
-            $procurementProduct->total_purchase_price = $procuredProduct[ 'total_purchase_price' ];
-            $procurementProduct->convert_unit_id = $procuredProduct[ 'convert_unit_id' ] ?? null;
-            $procurementProduct->unit_id = $procuredProduct[ 'unit_id' ];
-            $procurementProduct->author = Auth::id();
-            $procurementProduct->save();
-            $procurementProduct->barcode = str_pad( $product->barcode, 5, '0', STR_PAD_LEFT ) . '-' . str_pad( $procurementProduct->unit_id, 3, '0', STR_PAD_LEFT ) . '-' . str_pad( $procurementProduct->id, 3, '0', STR_PAD_LEFT );
-            $procurementProduct->save();
+            $procurementreturnProduct->name = $product->name;
+            $procurementreturnProduct->gross_purchase_price = $procuredProduct[ 'gross_purchase_price' ];
+            $procurementreturnProduct->net_purchase_price = $procuredProduct[ 'net_purchase_price' ];
+            $procurementreturnProduct->procurement_return_id = $procurementreturn->id;
+            $procurementreturnProduct->product_id = $procuredProduct[ 'product_id' ];
+            $procurementreturnProduct->purchase_price = $procuredProduct[ 'purchase_price' ];
+            $procurementreturnProduct->quantity = $procuredProduct[ 'quantity' ];
+            $procurementreturnProduct->available_quantity = $procuredProduct[ 'quantity' ];
+            $procurementreturnProduct->tax_group_id = $procuredProduct[ 'tax_group_id' ] ?? 0;
+            $procurementreturnProduct->tax_type = $procuredProduct[ 'tax_type' ];
+            $procurementreturnProduct->tax_value = $procuredProduct[ 'tax_value' ];
+            $procurementreturnProduct->expiration_date = $procuredProduct[ 'expiration_date' ] ?? null;
+            $procurementreturnProduct->total_purchase_price = $procuredProduct[ 'total_purchase_price' ];
+            $procurementreturnProduct->convert_unit_id = $procuredProduct[ 'convert_unit_id' ] ?? null;
+            $procurementreturnProduct->unit_id = $procuredProduct[ 'unit_id' ];
+            $procurementreturnProduct->author = Auth::id();
+            $procurementreturnProduct->save();
+            $procurementreturnProduct->barcode = str_pad( $product->barcode, 5, '0', STR_PAD_LEFT ) . '-' . str_pad( $procurementreturnProduct->unit_id, 3, '0', STR_PAD_LEFT ) . '-' . str_pad( $procurementreturnProduct->id, 3, '0', STR_PAD_LEFT );
+            $procurementreturnProduct->save();
 
-            event( new ProcurementAfterSaveProductEvent( $procurement, $procurementProduct, $procuredProduct ) );
+            event( new ProcurementReturnAfterSaveProductEvent( $procurementreturn, $procurementreturnProduct, $procuredProduct ) );
 
-            return $procurementProduct;
+            return $procurementreturnProduct;
         } );
 
         return $procuredProducts;
     }
 
     /**
-     * prepare the procurement entry.
+     * prepare the procurementreturn entry.
      */
     private function __procureForUnitGroup( array $data )
     {
         /**
          * @var $storeUnitReference
-         * @var ProcurementProduct $procurementProduct
+         * @var ProcurementReturnProduct $procurementreturnProduct
          * @var $storedBase
          * @var $item
          */
         extract( $data );
 
-        if ( empty( $stored = @$storedUnitReference[ $procurementProduct->unit_id ] ) ) {
-            $unit = $this->unitService->get( $procurementProduct->unit_id );
+        if ( empty( $stored = @$storedUnitReference[ $procurementreturnProduct->unit_id ] ) ) {
+            $unit = $this->unitService->get( $procurementreturnProduct->unit_id );
             $group = $this->unitService->getGroups( $item->purchase_unit_id ); // which should retrieve the group
             $base = $unit->base_unit ? $unit : $this->unitService->getBaseUnit( $group );
-            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementProduct->quantity );
-            $storedBase[ $procurementProduct->unit_id ] = compact( 'base', 'unit', 'group' );
+            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementreturnProduct->quantity );
+            $storedBase[ $procurementreturnProduct->unit_id ] = compact( 'base', 'unit', 'group' );
         } else {
             extract( $stored );
-            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementProduct->quantity );
+            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementreturnProduct->quantity );
         }
 
         /**
@@ -501,11 +501,11 @@ class ProcurementReturnService
 
         $itemData = [
             'product_id' => $item->id,
-            'unit_id' => $procurementProduct->unit_id,
+            'unit_id' => $procurementreturnProduct->unit_id,
             'base_quantity' => $base_quantity,
-            'quantity' => $procurementProduct->quantity,
-            'purchase_price' => $this->currency->value( $procurementProduct->purchase_price )->get(),
-            'total_purchase_price' => $this->currency->value( $procurementProduct->purchase_price )->multiplyBy( $procurementProduct->quantity )->get(),
+            'quantity' => $procurementreturnProduct->quantity,
+            'purchase_price' => $this->currency->value( $procurementreturnProduct->purchase_price )->get(),
+            'total_purchase_price' => $this->currency->value( $procurementreturnProduct->purchase_price )->multiplyBy( $procurementreturnProduct->quantity )->get(),
             'author' => Auth::id(),
             'name' => $item->name,
         ];
@@ -527,20 +527,20 @@ class ProcurementReturnService
             $unit = $this->unitService->get( $item->purchase_unit_id );
             $group = $unit->group;
             $base = $unit->base_unit ? $unit : $this->unitService->getBaseUnit( $group );
-            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementProduct->quantity );
+            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementreturnProduct->quantity );
             $storedUnitReference[ $item->purchase_unit_id ] = compact( 'base', 'unit' );
         } else {
             extract( $stored );
-            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementProduct->quantity );
+            $base_quantity = $this->unitService->computeBaseUnit( $unit, $base, $procurementreturnProduct->quantity );
         }
 
         $itemData = [
             'product_id' => $item->id,
             'unit_id' => $item->purchase_unit_id,
             'base_quantity' => $base_quantity,
-            'quantity' => $procurementProduct->quantity,
-            'purchase_price' => $this->currency->value( $procurementProduct->purchase_price )->get(),
-            'total_price' => $this->currency->value( $procurementProduct->purchase_price )->multiplyBy( $procurementProduct->quantity )->get(),
+            'quantity' => $procurementreturnProduct->quantity,
+            'purchase_price' => $this->currency->value( $procurementreturnProduct->purchase_price )->get(),
+            'total_price' => $this->currency->value( $procurementreturnProduct->purchase_price )->multiplyBy( $procurementreturnProduct->quantity )->get(),
             'author' => Auth::id(),
             'name' => $item->name,
         ];
@@ -551,25 +551,25 @@ class ProcurementReturnService
     }
 
     /**
-     * save a defined procurement products
+     * save a defined procurementreturn products
      *
-     * @param int procurement id
+     * @param int procurementreturn id
      * @param array items
      * @return array;
      */
-    public function saveProcurementProducts( $procurement_id, $items )
+    public function saveProcurementReturnProducts( $procurement_return_id, $items )
     {
         $procuredItems = [];
 
         foreach ( $items as $item ) {
-            $product = new ProcurementProduct;
+            $product = new ProcurementReturnProduct;
 
             foreach ( $item as $field => $value ) {
                 $product->$field = $value;
             }
 
             $product->author = Auth::id();
-            $product->procurement_id = $procurement_id;
+            $product->procurement_return_id = $procurement_return_id;
             $product->save();
 
             $procuredItems[] = $product->toArray();
@@ -585,93 +585,93 @@ class ProcurementReturnService
     }
 
     /**
-     * refresh a procurement
+     * refresh a procurementreturn
      * by counting the total items & value
      *
-     * @param  Procurement $provided procurement
+     * @param  ProcurementReturn $provided procurementreturn
      * @return array
      */
-    public function refresh( Procurement $procurement )
+    public function refresh( ProcurementReturn $procurementreturn )
     {
         /**
          * @var ProductService
          */
         $productService = app()->make( ProductService::class );
 
-        Procurement::withoutEvents( function () use ( $procurement, $productService ) {
+        ProcurementReturn::withoutEvents( function () use ( $procurementreturn, $productService ) {
             /**
              * Let's loop all procured produt
              * and get unit quantity if that exists
              * otherwise we'll create a new one.
              */
-            $purchases = $procurement
+            $purchases = $procurementreturn
                 ->products()
                 ->get()
-                ->map( function ( $procurementProduct ) use ( $productService ) {
+                ->map( function ( $procurementreturnProduct ) use ( $productService ) {
                     $unitPrice = 0;
-                    $unit = $productService->getUnitQuantity( $procurementProduct->product_id, $procurementProduct->unit_id );
+                    $unit = $productService->getUnitQuantity( $procurementreturnProduct->product_id, $procurementreturnProduct->unit_id );
 
                     if ( $unit instanceof ProductUnitQuantity ) {
-                        $unitPrice = $unit->sale_price * $procurementProduct->quantity;
+                        $unitPrice = $unit->sale_price * $procurementreturnProduct->quantity;
                     }
 
                     /**
                      * We'll return the total purchase
-                     * price to update the procurement total fees.
+                     * price to update the procurementreturn total fees.
                      */
                     return [
-                        'total_purchase_price' => $procurementProduct->total_purchase_price,
-                        'tax_value' => $procurementProduct->tax_value,
+                        'total_purchase_price' => $procurementreturnProduct->total_purchase_price,
+                        'tax_value' => $procurementreturnProduct->tax_value,
                         'total_price' => $unitPrice,
                     ];
                 } );
 
-            $procurement->cost = $purchases->sum( 'total_purchase_price' );
-            $procurement->tax_value = $purchases->sum( 'tax_value' );
-            $procurement->value = $purchases->sum( 'total_price' );
-            $procurement->total_items = count( $purchases );
-            $procurement->save();
+            $procurementreturn->cost = $purchases->sum( 'total_purchase_price' );
+            $procurementreturn->tax_value = $purchases->sum( 'tax_value' );
+            $procurementreturn->value = $purchases->sum( 'total_price' );
+            $procurementreturn->total_items = count( $purchases );
+            $procurementreturn->save();
         } );
 
         return [
             'status' => 'success',
-            'message' => __( 'The procurement has been refreshed.' ),
-            'data' => compact( 'procurement' ),
+            'message' => __( 'The procurementreturn has been refreshed.' ),
+            'data' => compact( 'procurementreturn' ),
         ];
     }
 
     /**
-     * delete procurement
+     * delete procurementreturn
      * products
      *
-     * @param Procurement
+     * @param ProcurementReturn
      * @return array
      */
-    public function deleteProducts( Procurement $procurement )
+    public function deleteProducts( ProcurementReturn $procurementreturn )
     {
-        $procurement->products->each( function ( $product ) {
+        $procurementreturn->products->each( function ( $product ) {
             $product->delete();
         } );
 
         return [
             'status' => 'success',
-            'message' => __( 'The procurement products has been deleted.' ),
+            'message' => __( 'The procurementreturn products has been deleted.' ),
         ];
     }
 
     /**
-     * helps to determine if a procurement
+     * helps to determine if a procurementreturn
      * includes a specific product using their id.
-     * The ID of the product should be the one of the products of the procurements
+     * The ID of the product should be the one of the products of the procurementreturns
      *
-     * @param int procurement id
+     * @param int procurementreturn id
      * @param int product id
      */
-    public function hasProduct( int $procurement_id, int $product_id )
+    public function hasProduct( int $procurement_return_id, int $product_id )
     {
-        $procurement = $this->get( $procurement_id );
+        $procurementreturn = $this->get( $procurement_return_id );
 
-        return $procurement->products->filter( function ( $product ) use ( $product_id ) {
+        return $procurementreturn->products->filter( function ( $product ) use ( $product_id ) {
             return (int) $product->id === (int) $product_id;
         } )->count() > 0;
     }
@@ -679,93 +679,93 @@ class ProcurementReturnService
     /**
      * @deprecated
      */
-    public function updateProcurementProduct( $product_id, $fields )
+    public function updateProcurementReturnProduct( $product_id, $fields )
     {
-        $procurementProduct = $this->getProcurementProduct( $product_id );
-        $item = $this->productService->get( $procurementProduct->product_id );
+        $procurementreturnProduct = $this->getProcurementReturnProduct( $product_id );
+        $item = $this->productService->get( $procurementreturnProduct->product_id );
         $storedUnitReference = [];
         $itemsToSave = [];
 
         /**
-         * the idea here it to update the procurement
+         * the idea here it to update the procurementreturn
          * quantity, unit_id and purchase price, since that information
-         * is used on __computeProcurementProductValues
+         * is used on __computeProcurementReturnProductValues
          */
         foreach ( $fields as $field => $value ) {
-            $procurementProduct->$field = $value;
+            $procurementreturnProduct->$field = $value;
         }
 
         /**
          * @var array $itemsToSave
          * @var array errors
          */
-        extract( $this->__computeProcurementProductValues( compact( 'item', 'procurementProduct', 'storeUnitReference', 'itemsToSave', 'errors' ) ) );
+        extract( $this->__computeProcurementReturnProductValues( compact( 'item', 'procurementreturnProduct', 'storeUnitReference', 'itemsToSave', 'errors' ) ) );
 
         /**
          * typically since the items to save should be
          * only a single entry, we'll harcode it to be "0"
          */
         foreach ( $itemsToSave[0] as $field => $value ) {
-            $procurementProduct->$field = $value;
+            $procurementreturnProduct->$field = $value;
         }
 
-        $procurementProduct->author = Auth::id();
-        $procurementProduct->save();
+        $procurementreturnProduct->author = Auth::id();
+        $procurementreturnProduct->save();
 
         return [
             'status' => 'success',
-            'message' => __( 'The procurement product has been updated.' ),
+            'message' => __( 'The procurementreturn product has been updated.' ),
             'data' => [
-                'product' => $procurementProduct,
+                'product' => $procurementreturnProduct,
             ],
         ];
     }
 
-    public function getProcurementProduct( $product_id )
+    public function getProcurementReturnProduct( $product_id )
     {
-        $product = ProcurementProduct::find( $product_id );
+        $product = ProcurementReturnProduct::find( $product_id );
 
-        if ( ! $product instanceof ProcurementProduct ) {
-            throw new Exception( __( 'Unable to find the procurement product using the provided id.' ) );
+        if ( ! $product instanceof ProcurementReturnProduct ) {
+            throw new Exception( __( 'Unable to find the procurementreturn product using the provided id.' ) );
         }
 
         return $product;
     }
 
     /**
-     * Delete a procurement product
+     * Delete a procurementreturn product
      *
-     * @param int procurement product id
+     * @param int procurementreturn product id
      * @return array response
      */
-    public function deleteProduct( ProcurementProduct $procurementProduct, Procurement $procurement )
+    public function deleteProduct( ProcurementReturnProduct $procurementreturnProduct, ProcurementReturn $procurementreturn )
     {
         /**
          * this could be useful to prevent deletion for
          * product which might be in use by another resource
          */
-        event( new ProcurementBeforeDeleteProductEvent( $procurementProduct ) );
+        event( new ProcurementReturnBeforeDeleteProductEvent( $procurementreturnProduct ) );
 
         /**
          * we'll reduce the stock only if the
-         * procurement has been stocked.
+         * procurementreturn has been stocked.
          */
-        if ( $procurement->delivery_status === 'stocked' ) {
+        if ( $procurementreturn->delivery_status === 'stocked' ) {
             /**
              * if the product was'nt convered into a different unit
              * then we'll directly perform a stock adjustment on that product.
              */
-            if ( ! empty( $procurementProduct->convert_unit_id ) ) {
-                $from = Unit::find( $procurementProduct->unit_id );
-                $to = Unit::find( $procurementProduct->convert_unit_id );
+            if ( ! empty( $procurementreturnProduct->convert_unit_id ) ) {
+                $from = Unit::find( $procurementreturnProduct->unit_id );
+                $to = Unit::find( $procurementreturnProduct->convert_unit_id );
                 $convertedQuantityToRemove = $this->unitService->getConvertedQuantity(
                     from: $from,
                     to: $to,
-                    quantity: $procurementProduct->quantity
+                    quantity: $procurementreturnProduct->quantity
                 );
 
                 $purchasePrice = $this->unitService->getPurchasePriceFromUnit(
-                    purchasePrice: $procurementProduct->purchase_price,
+                    purchasePrice: $procurementreturnProduct->purchase_price,
                     from: $from,
                     to: $to
                 );
@@ -773,10 +773,10 @@ class ProcurementReturnService
                 $this->productService->stockAdjustment( ProductHistory::ACTION_DELETED, [
                     'total_price' => ns()->currency->define( $purchasePrice )->multipliedBy( $convertedQuantityToRemove )->toFloat(),
                     'unit_price' => $purchasePrice,
-                    'unit_id' => $procurementProduct->convert_unit_id,
-                    'product_id' => $procurementProduct->product_id,
+                    'unit_id' => $procurementreturnProduct->convert_unit_id,
+                    'product_id' => $procurementreturnProduct->product_id,
                     'quantity' => $convertedQuantityToRemove,
-                    'procurementProduct' => $procurementProduct,
+                    'procurementreturnProduct' => $procurementreturnProduct,
                 ] );
             } else {
                 /**
@@ -784,115 +784,115 @@ class ProcurementReturnService
                  * history
                  */
                 $this->productService->stockAdjustment( ProductHistory::ACTION_DELETED, [
-                    'total_price' => $procurementProduct->total_purchase_price,
-                    'unit_price' => $procurementProduct->purchase_price,
-                    'unit_id' => $procurementProduct->unit_id,
-                    'product_id' => $procurementProduct->product_id,
-                    'quantity' => $procurementProduct->quantity,
-                    'procurementProduct' => $procurementProduct,
+                    'total_price' => $procurementreturnProduct->total_purchase_price,
+                    'unit_price' => $procurementreturnProduct->purchase_price,
+                    'unit_id' => $procurementreturnProduct->unit_id,
+                    'product_id' => $procurementreturnProduct->product_id,
+                    'quantity' => $procurementreturnProduct->quantity,
+                    'procurementreturnProduct' => $procurementreturnProduct,
                 ] );
             }
         }
 
-        $procurementProduct->delete();
+        $procurementreturnProduct->delete();
 
         /**
          * the product has been deleted, so we couldn't pass
          * the Model Object anymore
          */
-        event( new ProcurementAfterDeleteProductEvent( $procurementProduct->id, $procurement ) );
+        event( new ProcurementReturnAfterDeleteProductEvent( $procurementreturnProduct->id, $procurementreturn ) );
 
         return [
             'status' => 'sucecss',
             'message' => sprintf(
-                __( 'The product %s has been deleted from the procurement %s' ),
-                $procurementProduct->name,
-                $procurement->name,
+                __( 'The product %s has been deleted from the procurementreturn %s' ),
+                $procurementreturnProduct->name,
+                $procurementreturn->name,
             ),
         ];
     }
 
-    public function getProcurementProducts( $procurement_id )
+    public function getProcurementReturnProducts( $procurement_return_id )
     {
-        return ProcurementProduct::getByProcurement( $procurement_id )
+        return ProcurementReturnProduct::getByProcurementReturn( $procurement_return_id )
             ->get();
     }
 
     /**
-     * Update a procurement products
+     * Update a procurementreturn products
      * using the provided product collection
      *
-     * @param int procurement id
+     * @param int procurementreturn id
      * @param array array
      * @return array status
      *
      * @deprecated
      */
-    public function bulkUpdateProducts( $procurement_id, $products )
+    public function bulkUpdateProducts( $procurement_return_id, $products )
     {
-        $productsId = $this->getProcurementProducts( $procurement_id )
+        $productsId = $this->getProcurementReturnProducts( $procurement_return_id )
             ->pluck( 'id' );
 
         $result = collect( $products )
             ->map( function ( $product ) use ( $productsId ) {
                 if ( ! in_array( $product[ 'id' ], $productsId ) ) {
-                    throw new Exception( sprintf( __( 'The product with the following ID "%s" is not initially included on the procurement' ), $product[ 'id' ] ) );
+                    throw new Exception( sprintf( __( 'The product with the following ID "%s" is not initially included on the procurementreturn' ), $product[ 'id' ] ) );
                 }
 
                 return $product;
             } )
             ->map( function ( $product ) {
-                return $this->updateProcurementProduct( $product[ 'id' ], $product );
+                return $this->updateProcurementReturnProduct( $product[ 'id' ], $product );
             } );
 
         return [
             'status' => 'success',
-            'message' => __( 'The procurement products has been updated.' ),
+            'message' => __( 'The procurementreturn products has been updated.' ),
             'data' => compact( 'result' ),
         ];
     }
 
     /**
-     * Get the procurements product
+     * Get the procurementreturns product
      *
-     * @param int procurement id
+     * @param int procurementreturn id
      */
-    public function getProducts( $procurement_id ): EloquentCollection
+    public function getProducts( $procurement_return_id ): EloquentCollection
     {
-        $procurement = $this->get( $procurement_id );
+        $procurementreturn = $this->get( $procurement_return_id );
 
-        return $procurement->products;
+        return $procurementreturn->products;
     }
 
-    public function setDeliveryStatus( Procurement $procurement, string $status )
+    public function setDeliveryStatus( ProcurementReturn $procurementreturn, string $status )
     {
-        Procurement::withoutEvents( function () use ( $procurement, $status ) {
-            $procurement->delivery_status = $status;
-            $procurement->save();
+        ProcurementReturn::withoutEvents( function () use ( $procurementreturn, $status ) {
+            $procurementreturn->delivery_status = $status;
+            $procurementreturn->save();
         } );
     }
 
     /**
-     * When a procurement is being made
+     * When a procurementreturn is being made
      * this will actually save the history and update
      * the product stock
      *
      * @return void
      */
-    public function handleProcurement( Procurement $procurement )
+    public function handleProcurementReturn( ProcurementReturn $procurementreturn )
     {
-        event( new ProcurementBeforeHandledEvent( $procurement ) );
+        event( new ProcurementReturnBeforeHandledEvent( $procurementreturn ) );
 
-        if ( $procurement->delivery_status === Procurement::DELIVERED ) {
-            $procurement->products->map( function ( ProcurementProduct $product ) {
+        if ( $procurementreturn->delivery_status === ProcurementReturn::DELIVERED ) {
+            $procurementreturn->products->map( function ( ProcurementReturnProduct $product ) {
                 /**
                  * We'll keep an history of what has just happened.
                  * in order to monitor how the stock evolve.
                  */
                 $this->productService->saveHistory( ProductHistory::ACTION_STOCKED, [
-                    'procurement_id' => $product->procurement_id,
+                    'procurement_return_id' => $product->procurement_return_id,
                     'product_id' => $product->product_id,
-                    'procurement_product_id' => $product->id,
+                    'procurementreturn_product_id' => $product->id,
                     'operation_type' => ProductHistory::ACTION_STOCKED,
                     'quantity' => $product->quantity,
                     'unit_price' => $product->purchase_price,
@@ -927,51 +927,51 @@ class ProcurementReturnService
                         product: $product->product,
                         quantity: $product->quantity,
                         from: $product->unit,
-                        procurementProduct: $product,
+                        procurementreturnProduct: $product,
                         to: Unit::find( $product->convert_unit_id )
                     );
                 }
             } );
 
-            $this->setDeliveryStatus( $procurement, Procurement::STOCKED );
+            $this->setDeliveryStatus( $procurementreturn, ProcurementReturn::STOCKED );
         }
 
-        event( new ProcurementAfterHandledEvent( $procurement ) );
+        event( new ProcurementReturnAfterHandledEvent( $procurementreturn ) );
     }
 
-    public function generateBarcode( ProcurementProduct $procurementProduct )
+    public function generateBarcode( ProcurementReturnProduct $procurementreturnProduct )
     {
         $this->barcodeService->generateBarcode(
-            $procurementProduct->barcode,
+            $procurementreturnProduct->barcode,
             BarcodeService::TYPE_CODE128
         );
     }
 
     /**
-     * Make sure to procure procurement that
+     * Make sure to procure procurementreturn that
      * are awaiting auto-submittion
      *
      * @return void
      */
-    public function stockAwaitingProcurements()
+    public function stockAwaitingProcurementReturns()
     {
         $startOfDay = $this->dateService->copy();
-        $procurements = Procurement::where( 'delivery_time', '<=', $startOfDay )
+        $procurementreturns = ProcurementReturn::where( 'delivery_time', '<=', $startOfDay )
             ->pending()
             ->autoApproval()
             ->get();
 
-        $procurements->each( function ( Procurement $procurement ) {
-            $this->setDeliveryStatus( $procurement, Procurement::DELIVERED );
-            $this->handleProcurement( $procurement );
+        $procurementreturns->each( function ( ProcurementReturn $procurementreturn ) {
+            $this->setDeliveryStatus( $procurementreturn, ProcurementReturn::DELIVERED );
+            $this->handleProcurementReturn( $procurementreturn );
         } );
 
-        if ( $procurements->count() ) {
+        if ( $procurementreturns->count() ) {
             ns()->notification->create( [
-                'title' => __( 'Procurement Automatically Stocked' ),
-                'identifier' => 'ns-warn-auto-procurement',
-                'url' => url( '/dashboard/procurements' ),
-                'description' => sprintf( __( '%s procurement(s) has recently been automatically procured.' ), $procurements->count() ),
+                'title' => __( 'ProcurementReturn Automatically Stocked' ),
+                'identifier' => 'ns-warn-auto-procurementreturn',
+                'url' => url( '/dashboard/procurementreturns' ),
+                'description' => sprintf( __( '%s procurementreturn(s) has recently been automatically procured.' ), $procurementreturns->count() ),
             ] )->dispatchForGroup( [
                 Role::namespace( 'admin' ),
                 Role::namespace( 'nexopos.store.administrator' ),
@@ -982,13 +982,13 @@ class ProcurementReturnService
     public function getDeliveryLabel( $label )
     {
         switch ( $label ) {
-            case Procurement::DELIVERED:
+            case ProcurementReturn::DELIVERED:
                 return __( 'Delivered' );
-            case Procurement::DRAFT:
+            case ProcurementReturn::DRAFT:
                 return __( 'Draft' );
-            case Procurement::PENDING:
+            case ProcurementReturn::PENDING:
                 return __( 'Pending' );
-            case Procurement::STOCKED:
+            case ProcurementReturn::STOCKED:
                 return __( 'Stocked' );
             default:
                 return $label;
@@ -998,9 +998,9 @@ class ProcurementReturnService
     public function getPaymentLabel( $label )
     {
         switch ( $label ) {
-            case Procurement::PAYMENT_PAID:
+            case ProcurementReturn::PAYMENT_PAID:
                 return __( 'Paid' );
-            case Procurement::PAYMENT_UNPAID:
+            case ProcurementReturn::PAYMENT_UNPAID:
                 return __( 'Unpaid' );
             default:
                 return $label;
@@ -1010,7 +1010,7 @@ class ProcurementReturnService
     public function searchQuery()
     {
         return Product::query()
-            ->whereIn( 'type', Hook::filter( 'ns-procurement-searchable-product-type', [
+            ->whereIn( 'type', Hook::filter( 'ns-procurementreturn-searchable-product-type', [
                 Product::TYPE_DEMATERIALIZED,
                 Product::TYPE_MATERIALIZED,
             ]) )
@@ -1021,29 +1021,25 @@ class ProcurementReturnService
 
     public function searchReturnQuery()
     {
-        return ProcurementProduct::query()
-            ->with( 'procurement', 'product.unit_quantities.unit' );
+        return ProcurementReturnProduct::query()
+            ->with( 'procurementreturn', 'product.unit_quantities.unit' );
     }
 
-    public function searchProcurementReturn( $argument, $limit = 10 )
+    public function searchProcurementReturn($argument, $limit = 10, $providerId = null)
     {
         return $this->searchReturnQuery()
-            ->limit( $limit )
-            // ->where( function ( $query ) use ( $argument ) {
-            //     $query->orWhere( 'name', 'LIKE', "%{$argument}%" );
-            //         // ->orWhere( 'sku', 'LIKE', "%{$argument}%" )
-            //         // ->orWhere( 'barcode', 'LIKE', "%{$argument}%" );
-            // } )
-            // ->whereHas( 'procurement', function ( $query ) use ( $argument ) {
-            //     $query->where( 'name', 'LIKE', "%{$argument}%" );
-            // } )
-            ->whereHas( 'procurement', function ( $query ) use ( $argument ) {
-                $query->where( 'invoice_reference', 'LIKE', "%{$argument}%" );
-            } )
+            ->limit($limit)
+            ->whereHas('procurementreturn', function ($query) use ($argument, $providerId) {
+                $query->where('invoice_reference', 'LIKE', "%{$argument}%");
+
+                if ($providerId) {
+                    $query->where('provider_id', $providerId);
+                }
+            })
             ->get()
-            ->map( function ( $product ) {
-                return $this->populateLoadedReturnProduct( $product );
-            } );
+            ->map(function ($product) {
+                return $this->populateLoadedReturnProduct($product);
+            });
     }
 
     public function searchProduct( $argument, $limit = 10 )
@@ -1123,26 +1119,26 @@ class ProcurementReturnService
         return $product;
     }
 
-    public function searchProcurementProduct( $argument )
+    public function searchProcurementReturnProduct( $argument )
     {
-        $procurementProduct = ProcurementProduct::where( 'barcode', $argument )
-            ->with( [ 'unit', 'procurement' ] )
+        $procurementreturnProduct = ProcurementReturnProduct::where( 'barcode', $argument )
+            ->with( [ 'unit', 'procurementreturn' ] )
             ->first();
 
-        if ( $procurementProduct instanceof ProcurementProduct ) {
-            $procurementProduct->unit_quantity = $this->productService->getUnitQuantity(
-                $procurementProduct->product_id,
-                $procurementProduct->unit_id
+        if ( $procurementreturnProduct instanceof ProcurementReturnProduct ) {
+            $procurementreturnProduct->unit_quantity = $this->productService->getUnitQuantity(
+                $procurementreturnProduct->product_id,
+                $procurementreturnProduct->unit_id
             );
         }
 
-        return $procurementProduct;
+        return $procurementreturnProduct;
     }
 
     public function preload( string $hash )
     {
-        if ( Cache::has( 'procurements-' . $hash ) ) {
-            $data  =   Cache::get( 'procurements-' . $hash );
+        if ( Cache::has( 'procurementreturns-' . $hash ) ) {
+            $data  =   Cache::get( 'procurementreturns-' . $hash );
             
             return [
                 'items' =>  collect( $data[ 'items' ] )->map( function( $item ) use ( $data ) {
@@ -1160,9 +1156,9 @@ class ProcurementReturnService
                          * This will be helpful to set the desired unit
                          * and quantity provided on the preload configuration.
                          */
-                        $product->procurement   =   new stdClass;
-                        $product->procurement->unit_id  =   $item[ 'unit_id' ];
-                        $product->procurement->quantity =   ns()->currency
+                        $product->procurementreturn   =   new stdClass;
+                        $product->procurementreturn->unit_id  =   $item[ 'unit_id' ];
+                        $product->procurementreturn->quantity =   ns()->currency
                             ->define( $item[ 'quantity' ] )
                             ->multipliedBy( $data[ 'multiplier' ] )->toFloat();
 
@@ -1184,14 +1180,14 @@ class ProcurementReturnService
             $data[ 'multiplier' ]   =   $multiplier;
             $data[ 'items' ]        =   $items;
 
-            Cache::put( 'procurements-' . $hash, $data, $expiration );
+            Cache::put( 'procurementreturns-' . $hash, $data, $expiration );
             
             return [
                 'status' => 'success',
-                'message' => __( 'The procurement has been saved for later use.' ),
+                'message' => __( 'The procurementreturn has been saved for later use.' ),
             ];
         }
 
-        throw new Exception( __( 'Unable to save the procurement for later use.' ) );
+        throw new Exception( __( 'Unable to save the procurementreturn for later use.' ) );
     }
 }

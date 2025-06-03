@@ -10,10 +10,12 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Classes\Hook;
 use App\Crud\ProcurementCrud;
+use App\Crud\ProcurementReturnCrud;
 use App\Crud\ProcurementProductCrud;
 use App\Exceptions\NotAllowedException;
 use App\Http\Controllers\DashboardController;
 use App\Http\Requests\ProcurementRequest;
+use App\Http\Requests\ProcurementReturnRequest;
 use App\Jobs\ProcurementRefreshJob;
 use App\Models\Procurement;
 use App\Models\ProcurementProduct;
@@ -67,7 +69,7 @@ class ProcurementController extends DashboardController
         ] ) );
     }
 
-    public function createReturn( ProcurementRequest $request )
+    public function createReturn( ProcurementReturnRequest $request )
     {
         return $this->procurementReturnService->create( $request->only( [
             'general', 'name', 'products',
@@ -240,6 +242,11 @@ class ProcurementController extends DashboardController
         return ProcurementCrud::table();
     }
 
+    public function listProcurementsReturns()
+    {
+        return ProcurementReturnCrud::table();
+    }
+
     /**
      * Render a creation page for a procurement
      */
@@ -294,9 +301,12 @@ class ProcurementController extends DashboardController
         return $this->procurementService->searchProduct( $request->input( 'search' ) );
     }
 
-    public function searchProcurementReturn( Request $request )
+    public function searchProcurementReturn(Request $request)
     {
-        return $this->procurementService->searchProcurementReturn( $request->input( 'search' ) );
+        $search = $request->input('search');
+        $providerId = $request->input('provider_id');
+
+        return $this->procurementService->searchProcurementReturn($search, 10, $providerId);
     }
 
     public function searchProcurementProduct( Request $request )

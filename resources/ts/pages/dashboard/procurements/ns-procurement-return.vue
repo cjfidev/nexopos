@@ -346,46 +346,50 @@ export default {
         // },
 
         doSearch(search) {
-            nsHttpClient.post('/api/procurements/products/search-procurement-return', { search })
-                .subscribe((result: any[]) => {
-                    if (result.length === 0) {
-                        nsSnackBar.error(__('No result match your query.')).subscribe();
-                    } else {                                                
-                        // Tambahkan semua produk yang ditemukan langsung ke daftar
-                        result.forEach(product => {
-                            this.addProductList(product);
-                        });
-                         // Hitung total quantity menggunakan reduce
-                        const totalReturnQuantity = result.reduce((total, product) => {
-                            return total + (product.product.procurement.quantity || 0);
-                        }, 0);
+            const providerId = this.form.tabs.general.fields[1].value;
 
-                        const invoiceDate = new Date(result[0].procurement.invoice_date);
-                        // Fungsi untuk mengubah format menjadi dd/mm/yyyy
-                        const formatDate = (date) => {
-                            const year = date.getFullYear();
-                            const month = String(date.getMonth() + 1).padStart(2, '0');  // Menambahkan leading zero jika perlu
-                            const day = String(date.getDate()).padStart(2, '0');  // Menambahkan leading zero jika perlu
+            nsHttpClient.post('/api/procurements/products/search-procurement-return', {
+                search,
+                provider_id: providerId
+            }).subscribe((result: any[]) => {
+                if (result.length === 0) {
+                    nsSnackBar.error(__('No result match your query.')).subscribe();
+                } else {
+                    // Tambahkan semua produk yang ditemukan langsung ke daftar
+                    result.forEach(product => {
+                        this.addProductList(product);
+                    });
 
-                            return `${year}-${month}-${day}`;
-                        };
-                        // Mengubah invoice_date ke format dd/mm/yyyy
-                        const formattedDate = formatDate(invoiceDate);
-                        this.form.tabs.general.fields[0].value = result[0].procurement.invoice_reference;
-                        this.form.tabs.general.fields[2].value = formattedDate;
-                        this.form.tabs.general.fields[3].value = result[0].procurement.provider_id;
-                        // Kosongkan hasil pencarian karena semua produk sudah ditambahkan
-                        this.searchResult = [];
-                        this.searchValue = '';
-                        
-                        // Tampilkan notifikasi sukses
-                        if (result.length === 1) {
-                            nsSnackBar.success(__('1 product has been added to the list.')).subscribe();
-                        } else {
-                            nsSnackBar.success(__(`${result.length} products have been added to the list.`)).subscribe();
-                        }
+                    // Hitung total quantity
+                    const totalReturnQuantity = result.reduce((total, product) => {
+                        return total + (product.product.procurement.quantity || 0);
+                    }, 0);
+
+                    const invoiceDate = new Date(result[0].procurement.invoice_date);
+                    const formatDate = (date) => {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    };
+                    const formattedDate = formatDate(invoiceDate);
+
+                    // Set value form
+                    this.form.tabs.general.fields[2].value = formattedDate;
+                    this.form.tabs.general.fields[3].value = result[0].procurement.provider_id;
+
+                    // Kosongkan hasil pencarian
+                    this.searchResult = [];
+                    this.searchValue = '';
+
+                    // Notifikasi
+                    if (result.length === 1) {
+                        nsSnackBar.success(__('1 product has been added to the list.')).subscribe();
+                    } else {
+                        nsSnackBar.success(__(`${result.length} products have been added to the list.`)).subscribe();
                     }
-                })
+                }
+            });
         },
 
         /**
@@ -516,7 +520,7 @@ export default {
                 unit_id: product.unit_quantities[0].unit_id,
                 product_id: product.id,
                 convert_unit_id: product.unit_quantities[0].convert_unit_id,
-                procurement_id: null,
+                procurement_return_id: null,
                 $invalid: false,
             };
 

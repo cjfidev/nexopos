@@ -73,7 +73,7 @@ class ProcurementReturnForm extends SettingsPage
                 return $_product;
             } ) : [],
             'tabs' => [
-                'general' => include ( dirname( __FILE__ ) . '/procurement/return-general.php' ),
+                'general' => include ( dirname( __FILE__ ) . '/procurement-return/general.php' ),
             ],
         ] );
     }
