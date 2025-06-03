@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<module>
+    <namespace>PiutangReport</namespace>
+    <version>1.0</version>
+    <author>Resa</author>
+    <name>PiutangReport</name>
+    <description>Account Receivable</description>
+</module>
