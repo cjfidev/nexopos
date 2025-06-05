@@ -1202,82 +1202,258 @@ class ProductService
      * @param string operation : deducted, sold, procured, deleted, adjusted, damaged
      * @param mixed[]<$unit_id,$product_id,$unit_price,?$total_price,?$procurement_id,?$procurement_product_id,?$sale_id,?$quantity> $data to manage
      */
-    public function stockAdjustment( $action, $data ): ProductHistory|EloquentCollection|bool
-    {
-        extract( $data, EXTR_REFS );
-        /**
-         * @param int                $product_id
-         * @param float              $unit_price
-         * @param id                 $unit_id
-         * @param float              $total_price
-         * @param int                $procurement_product_id
-         * @param OrderProduct       $orderProduct
-         * @param ProcurementProduct $procurementProduct
-         * @param string             $description
-         * @param float              $quantity
-         * @param string             $sku
-         * @param string             $unit_identifier
-         */
-        $product = isset( $product_id ) ? Product::find( $product_id ) : Product::usingSKU( $sku )->first();
+    public function stockAdjustment($action, $data): ProductHistory|EloquentCollection|bool
+{
+    extract($data, EXTR_REFS);
+    /**
+     * @param int                $product_id
+     * @param float              $unit_price
+     * @param id                 $unit_id
+     * @param float              $total_price
+     * @param int                $procurement_product_id
+     * @param OrderProduct       $orderProduct
+     * @param ProcurementProduct $procurementProduct
+     * @param string             $description
+     * @param float              $quantity
+     * @param string             $sku
+     * @param string             $unit_identifier
+     */
+    $product = isset($product_id) ? Product::find($product_id) : Product::usingSKU($sku)->first();
 
-        if ( ! $product instanceof Product ) {
-            throw new NotFoundException( __( 'The product doesn\'t exists.' ) );
+    if (!$product instanceof Product) {
+        throw new NotFoundException(__('The product doesn\'t exists.'));
+    }
+
+    $product_id = $product->id;
+    $unit_id = isset($unit_id) ? $unit_id : $unit->id;
+    $unit = Unit::find($unit_id);
+
+    if (!$unit instanceof Unit) {
+        throw new NotFoundException(__('The unit doesn\'t exists.'));
+    }
+
+    /**
+     * let's check the different
+     * actions which are allowed on the current request
+     */
+    if (!in_array($action, [
+        ...$this->getIncreaseActions(),
+        ...$this->getReduceActions(),
+        ProductHistory::ACTION_SET
+    ])) {
+        throw new NotAllowedException(sprintf(__('The "%s" action is not an allowed operation.'), $action));
+    }
+
+    /**
+     * if the total_price is not provided
+     * then we'll compute it
+     */
+    $total_price = empty($data['total_price']) ? $this->currency
+        ->define($data['unit_price'])
+        ->multipliedBy($data['quantity'])
+        ->get() : $data['total_price'];
+
+    /**
+     * the change on the stock is only performed
+     * if the Product has the stock management enabled.
+     */
+    if ($product->stock_management === Product::STOCK_MANAGEMENT_ENABLED) {
+        if ($product->type === Product::TYPE_GROUPED) {
+            return $this->handleStockAdjustmentsForGroupedProducts(
+                action: $action,
+                orderProductQuantity: $quantity,
+                product: $product,
+                orderProduct: isset($orderProduct) ? $orderProduct : null,
+                parentUnit: $unit
+            );
+        } else {
+            return \DB::transaction(function () use ($action, $quantity, $product_id, $unit_id, $unit_price, $total_price, $orderProduct, $product, $unit) {
+                $oldQuantity = $this->getQuantity($product_id, $unit_id);
+
+                if ($action === ProductHistory::ACTION_SOLD && isset($orderProduct)) {
+                    // Validasi status pesanan
+                    $order = $orderProduct->order;
+                    if (!in_array($order->payment_status, [Order::PAYMENT_PAID, Order::PAYMENT_PARTIALLY, Order::PAYMENT_UNPAID])) {
+                        return false; // Tidak potong stok jika status bukan PAID, PARTIALLY, atau UNPAID
+                    }
+
+                    // Panggil reduceStockByFifo untuk memotong stok berdasarkan FIFO
+                    try {
+                        $result = $this->reduceStockByFifo($product, $unit, $quantity);
+                        $totalCost = $result['total_cost'];
+                        $consumedProcurements = $result['consumed_procurements'];
+
+                        // Perbarui total_purchase_price pada OrderProduct
+                        $orderProduct->total_purchase_price = $totalCost;
+                        $orderProduct->save();
+
+                        // Kurangi stok di ProductUnitQuantity
+                        $this->preventNegativity(oldQuantity: $oldQuantity, quantity: $quantity);
+                        $resultQuantities = $this->reduceUnitQuantities($product_id, $unit_id, abs($quantity), $oldQuantity);
+                        $newQuantity = $resultQuantities['data']['newQuantity'];
+
+                        // Catat riwayat stok untuk setiap procurement yang dikonsumsi
+                        $histories = collect([]);
+                        foreach ($consumedProcurements as $procurement) {
+                            $history = $this->recordStockHistory(
+                                product_id: $product_id,
+                                action: $action,
+                                unit_id: $unit_id,
+                                unit_price: $procurement['unit_price'],
+                                quantity: $procurement['quantity'],
+                                total_price: $procurement['quantity'] * $procurement['unit_price'],
+                                order_id: $orderProduct->order_id,
+                                order_product_id: $orderProduct->id,
+                                procurement_product_id: $procurement['procurement_product_id'],
+                                procurement_id: $procurement['procurement_id'] ?? null,
+                                old_quantity: $oldQuantity,
+                                new_quantity: $newQuantity
+                            );
+                            $histories->push($history);
+
+                            // Log untuk debugging
+                            \Log::info('Stock deducted via FIFO', [
+                                'product_id' => $product_id,
+                                'unit_id' => $unit_id,
+                                'quantity' => $procurement['quantity'],
+                                'procurement_id' => $procurement['procurement_product_id'],
+                                'unit_price' => $procurement['unit_price'],
+                            ]);
+                        }
+
+                        return $histories->first(); // Kembalikan riwayat pertama (untuk kompatibilitas)
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to reduce stock via FIFO', [
+                            'product_id' => $product_id,
+                            'unit_id' => $unit_id,
+                            'quantity' => $quantity,
+                            'error' => $e->getMessage(),
+                        ]);
+                        throw new \Exception(sprintf(
+                            __('Failed to reduce stock for %s: %s'),
+                            $product->name,
+                            $e->getMessage()
+                        ));
+                    }
+                } elseif (in_array($action, $this->getReduceActions())) {
+                    $this->preventNegativity(oldQuantity: $oldQuantity, quantity: $quantity);
+                    $result = $this->reduceUnitQuantities($product_id, $unit_id, abs($quantity), $oldQuantity);
+                    $newQuantity = $result['data']['newQuantity'];
+
+                    if (isset($procurementProduct)) {
+                        $this->updateProcurementProductQuantity($procurementProduct, $quantity, ProcurementProduct::STOCK_REDUCE);
+                    }
+
+                    return $this->recordStockHistory(
+                        product_id: $product_id,
+                        action: $action,
+                        unit_id: $unit_id,
+                        unit_price: $unit_price,
+                        quantity: $quantity,
+                        total_price: $total_price,
+                        procurement_product_id: $procurementProduct?->id ?: null,
+                        procurement_id: $procurementProduct?->procurement_id ?? null,
+                        order_id: isset($orderProduct) ? $orderProduct->order_id : null,
+                        order_product_id: isset($orderProduct) ? $orderProduct->id : null,
+                        old_quantity: $oldQuantity,
+                        new_quantity: $newQuantity
+                    );
+                } elseif (in_array($action, $this->getIncreaseActions())) {
+    if ($action === ProductHistory::ACTION_RETURNED && isset($orderProduct)) {
+        // Panggil increaseStockByFifo untuk mengembalikan stok
+        try {
+            $this->increaseStockByFifo($product, $unit, $quantity);
+            $result = $this->increaseUnitQuantities($product_id, $unit_id, abs($quantity), $oldQuantity);
+            $newQuantity = $result['data']['newQuantity'];
+
+            // Catat riwayat stok
+            $history = $this->recordStockHistory(
+                product_id: $product_id,
+                action: $action,
+                unit_id: $unit_id,
+                unit_price: $unit_price,
+                quantity: $quantity,
+                total_price: $total_price,
+                order_id: $orderProduct->order_id,
+                order_product_id: $orderProduct->id,
+                old_quantity: $oldQuantity,
+                new_quantity: $newQuantity
+            );
+
+            \Log::info('Stock restored via FIFO', [
+                'product_id' => $product_id,
+                'unit_id' => $unit_id,
+                'quantity' => $quantity,
+            ]);
+
+            return $history;
+        } catch (\Exception $e) {
+            \Log::error('Failed to restore stock via FIFO', [
+                'product_id' => $product_id,
+                'unit_id' => $unit_id,
+                'quantity' => $quantity,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \Exception(sprintf(
+                __('Failed to restore stock for %s: %s'),
+                $product->name,
+                $e->getMessage()
+            ));
+        }
+    } else {
+        $result = $this->increaseUnitQuantities($product_id, $unit_id, abs($quantity), $oldQuantity);
+        $newQuantity = $result['data']['newQuantity'];
+
+        if (isset($procurementProduct)) {
+            $this->updateProcurementProductQuantity($procurementProduct, $quantity, ProcurementProduct::STOCK_INCREASE);
         }
 
-        $product_id = $product->id;
-        $unit_id = isset( $unit_id ) ? $unit_id : $unit->id;
-        $unit = Unit::find( $unit_id );
+        return $this->recordStockHistory(
+            product_id: $product_id,
+            action: $action,
+            unit_id: $unit_id,
+            unit_price: $unit_price,
+            quantity: $quantity,
+            total_price: $total_price,
+            procurement_product_id: $procurementProduct?->id ?: null,
+            procurement_id: $procurementProduct?->procurement_id ?? null,
+            order_id: isset($orderProduct) ? $orderProduct->order_id : null,
+            order_product_id: isset($orderProduct) ? $orderProduct->id : null,
+            old_quantity: $oldQuantity,
+            new_quantity: $newQuantity
+        );
+    }
+} elseif ($action === ProductHistory::ACTION_SET) {
+                    $currentQuantity = $this->getQuantity($product_id, $unit_id);
 
-        if ( ! $unit instanceof Unit ) {
-            throw new NotFoundException( __( 'The unit doesn\'t exists.' ) );
-        }
+                    if ($currentQuantity < $quantity) {
+                        $action = ProductHistory::ACTION_ADDED;
+                        $adjustQuantity = $quantity - $currentQuantity;
+                        $this->increaseUnitQuantities($product_id, $unit_id, $adjustQuantity, $currentQuantity);
+                    } elseif ($currentQuantity > $quantity) {
+                        $action = ProductHistory::ACTION_REMOVED;
+                        $adjustQuantity = $currentQuantity - $quantity;
+                        $this->reduceUnitQuantities($product_id, $unit_id, $adjustQuantity, $currentQuantity);
+                    }
 
-        /**
-         * let's check the different
-         * actions which are allowed on the current request
-         */
-        if ( ! in_array( $action, [
-            ...$this->getIncreaseActions(),
-            ...$this->getReduceActions(),
-            ProductHistory::ACTION_SET
-        ] ) ) {
-            throw new NotAllowedException( sprintf( __( 'The "%s" action is not an allowed operation.' ), $action ) );
-        }
+                    return $this->recordStockHistory(
+                        product_id: $product_id,
+                        action: $action,
+                        unit_id: $unit_id,
+                        unit_price: $unit_price,
+                        quantity: $adjustQuantity,
+                        total_price: $total_price,
+                        procurement_product_id: $procurementProduct?->id ?: null,
+                        procurement_id: $procurementProduct?->procurement_id ?? null,
+                        order_id: isset($orderProduct) ? $orderProduct->order_id : null,
+                        order_product_id: isset($orderProduct) ? $orderProduct->id : null,
+                        old_quantity: $currentQuantity,
+                        new_quantity: $quantity
+                    );
+                }
 
-        /**
-         * if the total_price is not provided
-         * then we'll compute it
-         */
-        $total_price = empty( $data[ 'total_price' ] ) ? $this->currency
-            ->define( $data[ 'unit_price' ] )
-            ->multipliedBy( $data[ 'quantity' ] )
-            ->get() : $data[ 'total_price' ];
-
-        /**
-         * the change on the stock is only performed
-         * if the Product has the stock management enabled.
-         */
-        if ( $product->stock_management === Product::STOCK_MANAGEMENT_ENABLED ) {
-            if ( $product->type === Product::TYPE_GROUPED ) {
-                return $this->handleStockAdjustmentsForGroupedProducts(
-                    action: $action,
-                    orderProductQuantity: $quantity,
-                    product: $product,
-                    orderProduct: isset( $orderProduct ) ? $orderProduct : null,
-                    parentUnit: $unit
-                );
-            } else {
-                return $this->handleStockAdjustmentRegularProducts(
-                    action: $action,
-                    quantity: $quantity,
-                    product_id: $product_id,
-                    unit_id: $unit_id,
-                    total_price: $total_price,
-                    unit_price: $unit_price,
-                    orderProduct: isset( $orderProduct ) ? $orderProduct : null,
-                    procurementProduct: isset( $procurementProduct ) ? $procurementProduct : null
-                );
-            }
+                throw new NotAllowedException(sprintf(__('Unsupported stock action "%s"'), $action));
+            });
         }
 
         return false;
@@ -2245,5 +2421,116 @@ class ProductService
     public function getIncreaseActions()
     {
         return Hook::filter( 'ns-products-increase-actions', ProductHistory::STOCK_INCREASE );
+    }
+
+    /**
+     * Mengurangi stok berdasarkan FIFO
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return array Array berisi detail pengurangan stok
+     */
+    protected function reduceStockByFifo(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $consumedProcurements = [];
+        $totalCost = 0;
+        
+        // Ambil procurement yang tersedia diurutkan berdasarkan yang paling awal
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->where('available_quantity', '>', 0)
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            $quantityToTake = min($remainingQuantity, $procurementProduct->available_quantity);
+            
+            // Kurangi available_quantity
+            $procurementProduct->available_quantity -= $quantityToTake;
+            $procurementProduct->save();
+            
+            $totalCost += $quantityToTake * $procurementProduct->purchase_price;
+            $remainingQuantity -= $quantityToTake;
+            
+            $consumedProcurements[] = [
+                'procurement_product_id' => $procurementProduct->id,
+                'quantity' => $quantityToTake,
+                'unit_price' => $procurementProduct->purchase_price
+            ];
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity yang tidak terpenuhi
+            throw new \Exception("Insufficient stock for product {$product->name}");
+        }
+        
+        return [
+            'total_cost' => $totalCost,
+            'consumed_procurements' => $consumedProcurements
+        ];
+    }
+
+        /**
+     * Menambah stok kembali berdasarkan FIFO (prioritaskan procurement terakhir yang dikurangi)
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return array Array berisi detail penambahan stok
+     */
+    protected function increaseStockByFifo(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $restoredProcurements = [];
+        
+        // Ambil procurement yang pernah dikurangi diurutkan terbalik (LIFO untuk pengembalian)
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            // Hitung berapa banyak bisa dikembalikan (tidak melebihi quantity awal)
+            $maxCanRestore = $procurementProduct->quantity - $procurementProduct->available_quantity;
+            $quantityToRestore = min($remainingQuantity, $maxCanRestore);
+            
+            if ($quantityToRestore > 0) {
+                $procurementProduct->available_quantity += $quantityToRestore;
+                $procurementProduct->save();
+                
+                $remainingQuantity -= $quantityToRestore;
+                
+                $restoredProcurements[] = [
+                    'procurement_product_id' => $procurementProduct->id,
+                    'quantity' => $quantityToRestore
+                ];
+            }
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity, buat procurement baru
+            $newProcurement = ProcurementProduct::create([
+                'product_id' => $product->id,
+                'unit_id' => $unit->id,
+                'quantity' => $remainingQuantity,
+                'available_quantity' => $remainingQuantity,
+                'purchase_price' => $product->cost // Gunakan harga cost terbaru
+            ]);
+            
+            $restoredProcurements[] = [
+                'procurement_product_id' => $newProcurement->id,
+                'quantity' => $remainingQuantity
+            ];
+        }
+        
+        return [
+            'restored_procurements' => $restoredProcurements
+        ];
     }
 }
