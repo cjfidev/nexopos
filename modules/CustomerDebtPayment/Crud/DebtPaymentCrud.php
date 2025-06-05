@@ -15,6 +15,7 @@ use App\Services\Helper;
 use App\Exceptions\NotAllowedException;
 use TorMorten\Eventy\Facades\Events as Hook;
 use App\Models\CustomerDebtPayment;
+use App\Models\CustomerAccountHistory;
 use App\Services\CustomerDebtSummaryService;
 use App\Services\CustomerDebtPaymentService;
 use Illuminate\Support\Facades\DB;
@@ -182,8 +183,9 @@ class DebtPaymentCrud extends CrudService
         return CrudForm::form(
             main: CrudInput::text(
                 label: __( 'Amount Paid' ),
-                name: 'amount_paid',                
-                description: __( 'Provide a name to the resource.' ),
+                name: 'amount_paid',
+                validation: 'required',
+                description: __( 'Provide a payment to the resource.' ),
             ),
             tabs: CrudForm::tabs(
                 CrudForm::tab(
@@ -195,21 +197,21 @@ class DebtPaymentCrud extends CrudService
                             name: 'customer_id',
                             validation: 'required',
                             options: Helper::toJsOptions( User::all(), [ 'id', 'first_name' ] ),
-                            description: __( 'Provide a name to the resource.' ),
+                            description: __( 'Provide a customer to the resource.' ),
                         ),
                         CrudInput::date(
                             label: __( 'Payment Date' ),
                             name: 'payment_date',
                             validation: 'required',
                             value: $entry->delivery_time ?? ns()->date->now()->format( 'Y-m-d' ),
-                            description: __( 'Provide a name to the resource.' ),
+                            description: __( 'Provide a date to the resource.' ),
                         ),
                         CrudInput::text(
                             label: __( 'Total Debt' ),
                             name: 'total_debt',
-                            description: __( 'Provide a name to the resource.' ),
+                            description: __( 'Provide a total to the resource.' ),
                             disabled: true
-                        ),                      
+                        ),
                             )
                 )
             )
@@ -255,15 +257,6 @@ class DebtPaymentCrud extends CrudService
             throw new NotAllowedException(__('Payment amount must be positive.'));
         }
         
-        // Dapatkan summary hutang
-        $debtSummary = CustomerDebtSummary::where('customer_id', $request['customer_id'])
-        ->firstOrFail();
-
-        // Validasi tidak melebihi hutang
-        if ($request['amount_paid'] > $debtSummary->total_debt) {
-            throw new NotAllowedException(__('Payment amount exceeds customer debt.'));
-        }
-        
         // Set author
         $request['author'] = Auth::id();
 
@@ -274,20 +267,49 @@ class DebtPaymentCrud extends CrudService
      * Trigger actions that will be executed 
      * after the entry has been created.
      */
-    public function afterPost( array $request, CustomerDebtPayment $entry ): array
+    public function afterPost(array $request, CustomerDebtPayment $entry): array
     {
-        DB::transaction(function() use ($entry) {
-            $debtSummaryService = new CustomerDebtSummaryService();
-            $debtSummaryService->reduceDebt($entry->customer_id, $entry->amount_paid);
-            
-            $debtPaymentService = new CustomerDebtPaymentService();
-            $debtPaymentService->processPayment($entry->customer_id, $entry->amount_paid);
-            // Anda bisa tambahkan pencatatan transaksi/audit log di sini
+        DB::transaction(function () use ($entry, $request) {
+
+            // Hitung total debt customer saat ini
+            $latestAdd = CustomerAccountHistory::where('customer_id', $entry->customer_id)
+                ->where('operation', 'add')
+                ->latest('created_at')
+                ->first();
+
+            $limitCredit = $latestAdd ? $latestAdd->amount : 0;
+
+            // Total payment dan deduct setelah 'add' terakhir
+            $totalPaid = CustomerAccountHistory::where('customer_id', $entry->customer_id)
+                ->where('created_at', '>', optional($latestAdd)->created_at)
+                ->whereIn('operation', ['payment', 'deduct'])
+                ->sum('amount');
+
+            // Tambah entri baru ke CustomerAccountHistory
+            CustomerAccountHistory::create([
+                'customer_id'       => $entry->customer_id,
+                'order_id'          => null, // null karena ini bukan dari POS
+                'previous_amount'   => 0,
+                'amount'            => $limitCredit,
+                'next_amount'       => $limitCredit,
+                'operation'         => 'add',
+                'author'            => Auth::id(),
+                'description'       => 'Pembayaran hutang',
+                'created_at'        => now(),
+                'updated_at'        => now(),
+            ]);
+
+            // Update account_amount pada User untuk mencerminkan sisa hutang
+            $user = User::find($entry->customer_id);
+            if ($user) {
+                $user->account_amount = $limitCredit;
+                $user->save();
+            }
+
         });
 
         return $request;
     }
-
 
     /**
      * A shortcut and secure way to access

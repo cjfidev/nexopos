@@ -27,4 +27,4 @@ Route::delete( 'procurements/{id}', [ ProcurementController::class, 'deleteProcu
 Route::post( 'procurements-returns/preload', [ ProcurementController::class, 'storePreloadReturn' ] );
 Route::post( 'procurements-returns/{id}/products', [ ProcurementController::class, 'procureReturn' ] );
 Route::post( 'procurements-returns', [ ProcurementController::class, 'createReturn' ] );
-Route::post( 'procurements/products/search-procurement-return', [ ProcurementController::class, 'searchProcurementReturn' ] );
+Route::post('procurements/products/search-procurement-return', [ProcurementController::class, 'searchProcurementReturn']);

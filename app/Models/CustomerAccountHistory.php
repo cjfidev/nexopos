@@ -29,6 +29,8 @@ class CustomerAccountHistory extends NsModel
 
     protected $table = 'nexopos_' . 'customers_account_history';
 
+    protected $guarded = [];
+
     public $dispatchesEvents = [
         'created' => CustomerAccountHistoryAfterCreatedEvent::class,
         'updated' => CustomerAccountHistoryAfterUpdatedEvent::class,

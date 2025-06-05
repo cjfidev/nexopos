@@ -28,3 +28,6 @@ Route::get( '/customers/coupons/edit/{coupon}', [ CustomersController::class, 'e
 Route::get( '/customers/coupons/history/{coupon}', [ CustomersController::class, 'couponHistory' ] )->name( ns()->routeName( 'ns.dashboard.customers-coupons-history' ) );
 Route::get( '/customers/coupons-generated', [ CustomersController::class, 'listGeneratedCoupons' ] )->name( ns()->routeName( 'ns.dashboard.customers-coupons-generated-list' ) ); // @todo update
 Route::get( '/customers/coupons-generated/edit/{coupon}', [ CustomersController::class, 'editGeneratedCoupon' ] )->name( ns()->routeName( 'ns.dashboard.customers-coupons-generated-edit' ) );
+
+// Print QRCode
+Route::get('/customers/{id}/print-barcode', [CustomersController::class, 'printBarcode'])->name( ns()->routeName( 'ns.dashboard.customers-print-barcode' ) );

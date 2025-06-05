@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Events\ProcurementAfterCreateEvent;
-use App\Events\ProcurementAfterDeleteEvent;
-use App\Events\ProcurementAfterUpdateEvent;
-use App\Events\ProcurementBeforeDeleteEvent;
-use App\Events\ProcurementBeforeUpdateEvent;
+use App\Events\ProcurementReturnAfterCreateEvent;
+use App\Events\ProcurementReturnAfterDeleteEvent;
+use App\Events\ProcurementReturnAfterUpdateEvent;
+use App\Events\ProcurementReturnBeforeDeleteEvent;
+use App\Events\ProcurementReturnBeforeUpdateEvent;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
@@ -33,7 +33,7 @@ class ProcurementReturn extends NsModel
 {
     use HasFactory;
 
-    protected $table = 'nexopos_' . 'procurements';
+    protected $table = 'nexopos_' . 'procurements_returns';
 
     /**
      * this status mention when the procurement
@@ -79,12 +79,12 @@ class ProcurementReturn extends NsModel
     const PAYMENT_PAID = 'paid';
 
     protected $dispatchesEvents = [
-        'creating' => ProcurementAfterCreateEvent::class,
-        'created' => ProcurementAfterCreateEvent::class,
-        'deleting' => ProcurementBeforeDeleteEvent::class,
-        'updating' => ProcurementBeforeUpdateEvent::class,
-        'updated' => ProcurementAfterUpdateEvent::class,
-        'deleted' => ProcurementAfterDeleteEvent::class,
+        'creating' => ProcurementReturnAfterCreateEvent::class,
+        'created' => ProcurementReturnAfterCreateEvent::class,
+        'deleting' => ProcurementReturnBeforeDeleteEvent::class,
+        'updating' => ProcurementReturnBeforeUpdateEvent::class,
+        'updated' => ProcurementReturnAfterUpdateEvent::class,
+        'deleted' => ProcurementReturnAfterDeleteEvent::class,
     ];
 
     public function transactionHistories()
@@ -94,7 +94,7 @@ class ProcurementReturn extends NsModel
 
     public function products()
     {
-        return $this->hasMany( ProcurementProduct::class, 'procurement_id' );
+        return $this->hasMany( ProcurementReturnProduct::class, 'procurement_id' );
     }
 
     public function provider()

@@ -2246,4 +2246,115 @@ class ProductService
     {
         return Hook::filter( 'ns-products-increase-actions', ProductHistory::STOCK_INCREASE );
     }
+
+    /**
+     * Mengurangi stok berdasarkan FIFO
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return array Array berisi detail pengurangan stok
+     */
+    protected function reduceStockByFifo(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $consumedProcurements = [];
+        $totalCost = 0;
+        
+        // Ambil procurement yang tersedia diurutkan berdasarkan yang paling awal
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->where('available_quantity', '>', 0)
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            $quantityToTake = min($remainingQuantity, $procurementProduct->available_quantity);
+            
+            // Kurangi available_quantity
+            $procurementProduct->available_quantity -= $quantityToTake;
+            $procurementProduct->save();
+            
+            $totalCost += $quantityToTake * $procurementProduct->purchase_price;
+            $remainingQuantity -= $quantityToTake;
+            
+            $consumedProcurements[] = [
+                'procurement_product_id' => $procurementProduct->id,
+                'quantity' => $quantityToTake,
+                'unit_price' => $procurementProduct->purchase_price
+            ];
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity yang tidak terpenuhi
+            throw new \Exception("Insufficient stock for product {$product->name}");
+        }
+        
+        return [
+            'total_cost' => $totalCost,
+            'consumed_procurements' => $consumedProcurements
+        ];
+    }
+
+        /**
+     * Menambah stok kembali berdasarkan FIFO (prioritaskan procurement terakhir yang dikurangi)
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return array Array berisi detail penambahan stok
+     */
+    protected function increaseStockByFifo(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $restoredProcurements = [];
+        
+        // Ambil procurement yang pernah dikurangi diurutkan terbalik (LIFO untuk pengembalian)
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            // Hitung berapa banyak bisa dikembalikan (tidak melebihi quantity awal)
+            $maxCanRestore = $procurementProduct->quantity - $procurementProduct->available_quantity;
+            $quantityToRestore = min($remainingQuantity, $maxCanRestore);
+            
+            if ($quantityToRestore > 0) {
+                $procurementProduct->available_quantity += $quantityToRestore;
+                $procurementProduct->save();
+                
+                $remainingQuantity -= $quantityToRestore;
+                
+                $restoredProcurements[] = [
+                    'procurement_product_id' => $procurementProduct->id,
+                    'quantity' => $quantityToRestore
+                ];
+            }
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity, buat procurement baru
+            $newProcurement = ProcurementProduct::create([
+                'product_id' => $product->id,
+                'unit_id' => $unit->id,
+                'quantity' => $remainingQuantity,
+                'available_quantity' => $remainingQuantity,
+                'purchase_price' => $product->cost // Gunakan harga cost terbaru
+            ]);
+            
+            $restoredProcurements[] = [
+                'procurement_product_id' => $newProcurement->id,
+                'quantity' => $remainingQuantity
+            ];
+        }
+        
+        return [
+            'restored_procurements' => $restoredProcurements
+        ];
+    }
 }

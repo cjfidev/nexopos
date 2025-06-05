@@ -43,6 +43,8 @@ use App\Models\ProductUnitQuantity;
 use App\Models\Register;
 use App\Models\Role;
 use App\Models\Unit;
+use App\Models\Procurement;
+use App\Models\ProcurementProduct;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -1223,16 +1225,14 @@ class OrdersService
             $orderProduct->discount_percentage = $product[ 'discount_percentage' ] ?? 0;
             $orderProduct->total_purchase_price = 0;
 
-            if ( $product[ 'product' ] instanceof Product ) {
+            if ($product['product'] instanceof Product) {
                 $orderProduct->total_purchase_price = $this->currencyService->define(
-                    $product[ 'total_purchase_price' ] ?? Currency::fresh( $this->productService->getCogs(
-                        product: $product[ 'product' ],
-                        unit: $unit
-                    ) )
-                        ->multipliedBy( $product[ 'quantity' ] )
-                        ->toFloat()
-                )
-                    ->toFloat();
+                    $this->getFifoProductCogs(
+                        $product['product'],
+                        Unit::find($product['unit_id']),
+                        $product['quantity']
+                    )
+                )->toFloat();
             }
 
             /**
@@ -1255,46 +1255,77 @@ class OrdersService
         return compact( 'subTotal', 'order', 'orderProducts' );
     }
 
-    public function saveOrderProductHistory( Order $order )
-    {
-        if (
-            in_array( $order->payment_status, [ Order::PAYMENT_PAID, Order::PAYMENT_PARTIALLY, Order::PAYMENT_UNPAID ] )
-        ) {
-            $order->products()->get()->each( function ( OrderProduct $orderProduct ) use ( $order ) {
-                $productCount = Product::where( 'id', $orderProduct->product_id )->count();
+    public function saveOrderProductHistory(Order $order)
+{
+    if (in_array($order->payment_status, [Order::PAYMENT_PAID, Order::PAYMENT_PARTIALLY, Order::PAYMENT_UNPAID])) {
+        $order->products()->get()->each(function (OrderProduct $orderProduct) use ($order) {
+            $productCount = Product::where('id', $orderProduct->product_id)->count();
 
-                if ( $productCount > 0 ) {
-                    /**
-                     * storing the product
-                     * history as a sale
-                     */
-                    $history = [
-                        'order_id' => $order->id,
-                        'unit_id' => $orderProduct->unit_id,
-                        'product_id' => $orderProduct->product_id,
-                        'quantity' => $orderProduct->quantity,
-                        'unit_price' => $orderProduct->unit_price,
-                        'orderProduct' => $orderProduct,
-                        'total_price' => $orderProduct->total_price,
-                    ];
-
-                    /**
-                     * __deleteUntrackedProducts will delete all products that
-                     * already exists and which are edited. We'll here only records
-                     * products that doesn't exists yet.
-                     */
-                    $stockHistoryExists = ProductHistory::where( 'order_product_id', $orderProduct->id )
-                        ->where( 'order_id', $order->id )
-                        ->where( 'operation_type', ProductHistory::ACTION_SOLD )
+            if ($productCount > 0) {
+                return DB::transaction(function () use ($orderProduct, $order) {
+                    // Periksa apakah riwayat stok sudah ada untuk produk ini
+                    $stockHistoryExists = ProductHistory::where('order_product_id', $orderProduct->id)
+                        ->where('order_id', $order->id)
+                        ->where('operation_type', ProductHistory::ACTION_SOLD)
                         ->count() === 1;
 
-                    if ( ! $stockHistoryExists ) {
-                        $this->productService->stockAdjustment( ProductHistory::ACTION_SOLD, $history );
+                    if (!$stockHistoryExists) {
+                        try {
+                            // Potong stok menggunakan FIFO
+                            $result = $this->reduceStockByFifo(
+                                Product::find($orderProduct->product_id),
+                                Unit::find($orderProduct->unit_id),
+                                $orderProduct->quantity
+                            );
+
+                            $totalCost = $result['total_cost'];
+                            $consumedProcurements = $result['consumed_procurements'];
+
+                            // Catat riwayat stok untuk setiap procurement yang dikonsumsi
+                            foreach ($consumedProcurements as $procurement) {
+                                $this->productService->stockAdjustment(ProductHistory::ACTION_SOLD, [
+                                    'order_id' => $order->id,
+                                    'unit_id' => $orderProduct->unit_id,
+                                    'product_id' => $orderProduct->product_id,
+                                    'quantity' => $procurement['quantity'],
+                                    'unit_price' => $procurement['unit_price'],
+                                    'total_price' => $procurement['quantity'] * $procurement['unit_price'],
+                                    'orderProduct' => $orderProduct,
+                                    'procurement_product_id' => $procurement['procurement_product_id'],
+                                ]);
+
+                                // Log untuk debugging
+                                \Log::info('Stock deducted via FIFO', [
+                                    'product_id' => $orderProduct->product_id,
+                                    'unit_id' => $orderProduct->unit_id,
+                                    'quantity' => $procurement['quantity'],
+                                    'procurement_id' => $procurement['procurement_product_id'],
+                                    'unit_price' => $procurement['unit_price'],
+                                ]);
+                            }
+
+                            // Perbarui total_purchase_price pada OrderProduct berdasarkan FIFO COGS
+                            $orderProduct->total_purchase_price = $totalCost;
+                            $orderProduct->save();
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to reduce stock via FIFO', [
+                                'product_id' => $orderProduct->product_id,
+                                'unit_id' => $orderProduct->unit_id,
+                                'quantity' => $orderProduct->quantity,
+                                'error' => $e->getMessage(),
+                            ]);
+                            throw new \Exception(sprintf(
+                                __('Failed to reduce stock for %s: %s'),
+                                $orderProduct->name,
+                                $e->getMessage()
+                            ));
+                        }
                     }
-                }
-            } );
-        }
+                });
+            }
+        });
     }
+}
 
     private function __buildOrderProducts( $products )
     {
@@ -1411,95 +1442,62 @@ class OrdersService
      * @param array Order Product
      * @return array Order Product (updated)
      */
-    public function __buildOrderProduct( array $orderProduct, ?ProductUnitQuantity $productUnitQuantity = null, ?Product $product = null )
+    public function __buildOrderProduct(array $orderProduct, ?ProductUnitQuantity $productUnitQuantity = null, ?Product $product = null)
     {
-        /**
-         * This will calculate the product default field
-         * when they aren't provided.
-         */
-        $orderProduct = $this->computeProduct( $orderProduct, $product, $productUnitQuantity );
-        $orderProduct[ 'unit_id' ] = $productUnitQuantity->unit->id ?? $orderProduct[ 'unit_id' ] ?? 0;
-        $orderProduct[ 'unit_quantity_id' ] = $productUnitQuantity->id ?? 0;
-        $orderProduct[ 'product' ] = $product;
-        $orderProduct[ 'mode' ] = $orderProduct[ 'mode' ] ?? 'normal';
-        $orderProduct[ 'product_type' ] = $orderProduct[ 'product_type' ] ?? 'product';
-        $orderProduct[ 'rate' ] = $orderProduct[ 'rate' ] ?? 0;
-        $orderProduct[ 'unitQuantity' ] = $productUnitQuantity;
-        $orderProduct[ 'cogs' ] = $productUnitQuantity->cogs ?? 0;
-
+        $orderProduct = $this->computeProduct($orderProduct, $product, $productUnitQuantity);
+        $orderProduct['unit_id'] = $productUnitQuantity->unit->id ?? $orderProduct['unit_id'] ?? 0;
+        $orderProduct['unit_quantity_id'] = $productUnitQuantity->id ?? 0;
+        $orderProduct['product'] = $product;
+        $orderProduct['mode'] = $orderProduct['mode'] ?? 'normal';
+        $orderProduct['product_type'] = $orderProduct['product_type'] ?? 'product';
+        $orderProduct['rate'] = $orderProduct['rate'] ?? 0;
+        $orderProduct['unitQuantity'] = $productUnitQuantity;
+        
+        // Ubah ini untuk menggunakan FIFO COGS
+        $orderProduct['cogs'] = $this->getFifoProductCogs(
+            $product, 
+            $productUnitQuantity->unit, 
+            $orderProduct['quantity']
+        );
+        
         return $orderProduct;
     }
 
-    public function checkQuantityAvailability( $product, $productUnitQuantity, $orderProduct, $session_identifier )
+    public function checkQuantityAvailability($product, $productUnitQuantity, $orderProduct, $session_identifier)
     {
-        if ( $product->stock_management === Product::STOCK_MANAGEMENT_ENABLED ) {
-            /**
-             * What we're doing here
-             * 1 - Get the unit assigned to the product being sold
-             * 2 - check if the units assigned is what has been stored on the product
-             * 3 - If a group is assigned to a product, the we check if that unit belongs to the unit group
-             */
-            try {
-                $storageQuantity = OrderStorage::withIdentifier( $session_identifier )
-                    ->withProduct( $product->id )
-                    ->withUnitQuantity( $orderProduct[ 'unit_quantity_id' ] )
-                    ->sum( 'quantity' );
+        if ($product->stock_management === Product::STOCK_MANAGEMENT_ENABLED) {
+            // Hitung total stok tersedia dari procurement
+            $availableQuantity = ProcurementProduct::where('product_id', $product->id)
+                ->where('unit_id', $orderProduct['unit_id'])
+                ->sum('available_quantity');
+                
+            $storageQuantity = OrderStorage::withIdentifier($session_identifier)
+                ->withProduct($product->id)
+                ->withUnitQuantity($orderProduct['unit_quantity_id'])
+                ->sum('quantity');
 
-                $orderProductQuantity = $orderProduct[ 'quantity' ];
+            $orderProductQuantity = $orderProduct['quantity'];
 
-                /**
-                 * If the orderProduct has an id, that means we're editing an order. In order to extract what is the exact quantity
-                 * we want to deduct from the stock, we need to know wether the quantity has changed (greater or not). We then need to pull
-                 * the original reference of the orderProduct to compute the new quantity that will be deducted from inventory.
-                 */
-                $quantityToIgnore = 0;
-
-                if ( isset( $orderProduct[ 'id' ] ) ) {
-                    $stockWasDeducted = ProductHistory::where( 'order_product_id', $orderProduct[ 'id' ] )
-                        ->where( 'operation_type', ProductHistory::ACTION_SOLD )
-                        ->count() === 1;
-
-                    /**
-                     * Only when the stock was deducted, we'll ignore the quantity
-                     * that is currently in use by the order product.
-                     */
-                    if ( $stockWasDeducted ) {
-                        $orderProductRerefence = OrderProduct::find( $orderProduct[ 'id' ] );
-                        $quantityToIgnore = $orderProductRerefence->quantity;
-                    }
-                }
-
-                if ( ( $productUnitQuantity->quantity + $quantityToIgnore ) - $storageQuantity < abs( $orderProductQuantity ) ) {
-                    throw new \Exception(
-                        sprintf(
-                            __( 'Unable to proceed, there is not enough stock for %s using the unit %s. Requested : %s, available %s' ),
-                            $product->name,
-                            $productUnitQuantity->unit->name,
-                            abs( $orderProductQuantity ),
-                            $productUnitQuantity->quantity - $storageQuantity
-                        )
-                    );
-                }
-
-                /**
-                 * We keep reference on the database
-                 * that's more easier.
-                 */
-                $storage = new OrderStorage;
-                $storage->product_id = $product->id;
-                $storage->unit_id = $productUnitQuantity->unit->id;
-                $storage->unit_quantity_id = $orderProduct[ 'unit_quantity_id' ];
-                $storage->quantity = $orderProduct[ 'quantity' ];
-                $storage->session_identifier = $session_identifier;
-                $storage->save();
-            } catch ( NotFoundException $exception ) {
+            if ($availableQuantity - $storageQuantity < abs($orderProductQuantity)) {
                 throw new \Exception(
                     sprintf(
-                        __( 'Unable to proceed, the product "%s" has a unit which cannot be retreived. It might have been deleted.' ),
-                        $product->name
+                        __('Unable to proceed, there is not enough stock for %s using the unit %s. Requested : %s, available %s'),
+                        $product->name,
+                        $productUnitQuantity->unit->name,
+                        abs($orderProductQuantity),
+                        $availableQuantity - $storageQuantity
                     )
                 );
             }
+
+            // Simpan ke OrderStorage
+            $storage = new OrderStorage;
+            $storage->product_id = $product->id;
+            $storage->unit_id = $productUnitQuantity->unit->id;
+            $storage->unit_quantity_id = $orderProduct['unit_quantity_id'];
+            $storage->quantity = $orderProduct['quantity'];
+            $storage->session_identifier = $session_identifier;
+            $storage->save();
         }
     }
 
@@ -1987,15 +1985,22 @@ class OrdersService
             /**
              * we do proceed by doing an initial return
              */
-            $this->productService->stockAdjustment( ProductHistory::ACTION_RETURNED, [
-                'total_price' => $productRefund->total_price,
+            // Hitung COGS berdasarkan FIFO
+            $cogs = $this->getFifoProductCogs(
+                $orderProduct->product,
+                $orderProduct->unit,
+                $productRefund->quantity
+            );
+            
+            $this->productService->stockAdjustment(ProductHistory::ACTION_RETURNED, [
+                'total_price' => $cogs,
                 'quantity' => $productRefund->quantity,
-                'unit_price' => $productRefund->unit_price,
+                'unit_price' => $cogs / $productRefund->quantity,
                 'product_id' => $productRefund->product_id,
                 'orderProduct' => $orderProduct,
                 'unit_id' => $productRefund->unit_id,
                 'order_id' => $order->id,
-            ] );
+            ]);
 
             /**
              * If the returned stock is damaged
@@ -2383,32 +2388,53 @@ class OrdersService
      * @param int product id
      * @return array response
      */
-    public function deleteOrderProduct( Order $order, $product_id )
+    public function deleteOrderProduct(Order $order, $product_id)
     {
         $hasDeleted = false;
 
-        $order->products->map( function ( $product ) use ( $product_id, &$hasDeleted, $order ) {
-            if ( $product->id === intval( $product_id ) ) {
-                OrderBeforeDeleteProductEvent::dispatch( $order, $product );
+        $order->products->map(function ($product) use ($product_id, &$hasDeleted, $order) {
+            if ($product->id === intval($product_id)) {
+                OrderBeforeDeleteProductEvent::dispatch($order, $product);
+
+                // Pulihkan stok jika payment_status bukan HOLD
+                if ($order->payment_status !== Order::PAYMENT_HOLD && $product->product_id > 0) {
+                    $this->increaseStockByFifo(
+                        Product::find($product->product_id),
+                        Unit::find($product->unit_id),
+                        $product->quantity
+                    );
+
+                    // Catat riwayat stok
+                    $this->productService->stockAdjustment(ProductHistory::ACTION_RETURNED, [
+                        'total_price' => $product->total_price,
+                        'product_id' => $product->product_id,
+                        'unit_id' => $product->unit_id,
+                        'orderProduct' => $product,
+                        'quantity' => $product->quantity,
+                        'unit_price' => $product->unit_price,
+                    ]);
+
+                    \Log::info('Stock restored via FIFO', [
+                        'product_id' => $product->product_id,
+                        'unit_id' => $product->unit_id,
+                        'quantity' => $product->quantity,
+                    ]);
+                }
 
                 $product->delete();
                 $hasDeleted = true;
             }
-        } );
+        });
 
-        if ( $hasDeleted ) {
-            /**
-             * @todo should be triggered after an event
-             */
-            $this->refreshOrder( $order );
-
+        if ($hasDeleted) {
+            $this->refreshOrder($order);
             return [
                 'status' => 'success',
-                'message' => __( 'The product has been successfully deleted from the order.' ),
+                'message' => __('The product has been successfully deleted from the order.'),
             ];
         }
 
-        throw new NotFoundException( __( 'Unable to find the requested product on the provider order.' ) );
+        throw new NotFoundException(__('Unable to find the requested product on the provided order.'));
     }
 
     /**
@@ -3111,5 +3137,154 @@ class OrdersService
         }
 
         return $bool;
+    }
+
+    /**
+     * Get product COGS using FIFO method
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return float
+     */
+    protected function getFifoProductCogs(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $totalCogs = 0;
+        
+        // Ambil procurement products yang tersedia, diurutkan berdasarkan yang paling awal (FIFO)
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->where('available_quantity', '>', 0)
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            $quantityToTake = min($remainingQuantity, $procurementProduct->available_quantity);
+            $totalCogs += $quantityToTake * $procurementProduct->purchase_price;
+            
+            $remainingQuantity -= $quantityToTake;
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity yang tidak terpenuhi, gunakan harga terakhir
+            $lastPrice = $procurementProducts->last()->purchase_price ?? $product->cost;
+            $totalCogs += $remainingQuantity * $lastPrice;
+        }
+        
+        return $totalCogs;
+    }
+
+    /**
+     * Mengurangi stok berdasarkan FIFO
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return array Array berisi detail pengurangan stok
+     */
+    protected function reduceStockByFifo(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $consumedProcurements = [];
+        $totalCost = 0;
+        
+        // Ambil procurement yang tersedia diurutkan berdasarkan yang paling awal
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->where('available_quantity', '>', 0)
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            $quantityToTake = min($remainingQuantity, $procurementProduct->available_quantity);
+            
+            // Kurangi available_quantity
+            $procurementProduct->available_quantity -= $quantityToTake;
+            $procurementProduct->save();
+            
+            $totalCost += $quantityToTake * $procurementProduct->purchase_price;
+            $remainingQuantity -= $quantityToTake;
+            
+            $consumedProcurements[] = [
+                'procurement_product_id' => $procurementProduct->id,
+                'quantity' => $quantityToTake,
+                'unit_price' => $procurementProduct->purchase_price
+            ];
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity yang tidak terpenuhi
+            throw new \Exception("Insufficient stock for product {$product->name}");
+        }
+        
+        return [
+            'total_cost' => $totalCost,
+            'consumed_procurements' => $consumedProcurements
+        ];
+    }
+
+        /**
+     * Menambah stok kembali berdasarkan FIFO (prioritaskan procurement terakhir yang dikurangi)
+     *
+     * @param Product $product
+     * @param Unit $unit
+     * @param float $quantity
+     * @return array Array berisi detail penambahan stok
+     */
+    protected function increaseStockByFifo(Product $product, Unit $unit, float $quantity)
+    {
+        $remainingQuantity = $quantity;
+        $restoredProcurements = [];
+        
+        // Ambil procurement yang pernah dikurangi diurutkan terbalik (LIFO untuk pengembalian)
+        $procurementProducts = ProcurementProduct::where('product_id', $product->id)
+            ->where('unit_id', $unit->id)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        
+        foreach ($procurementProducts as $procurementProduct) {
+            if ($remainingQuantity <= 0) break;
+            
+            // Hitung berapa banyak bisa dikembalikan (tidak melebihi quantity awal)
+            $maxCanRestore = $procurementProduct->quantity - $procurementProduct->available_quantity;
+            $quantityToRestore = min($remainingQuantity, $maxCanRestore);
+            
+            if ($quantityToRestore > 0) {
+                $procurementProduct->available_quantity += $quantityToRestore;
+                $procurementProduct->save();
+                
+                $remainingQuantity -= $quantityToRestore;
+                
+                $restoredProcurements[] = [
+                    'procurement_product_id' => $procurementProduct->id,
+                    'quantity' => $quantityToRestore
+                ];
+            }
+        }
+        
+        if ($remainingQuantity > 0) {
+            // Jika masih ada sisa quantity, buat procurement baru
+            $newProcurement = ProcurementProduct::create([
+                'product_id' => $product->id,
+                'unit_id' => $unit->id,
+                'quantity' => $remainingQuantity,
+                'available_quantity' => $remainingQuantity,
+                'purchase_price' => $product->cost // Gunakan harga cost terbaru
+            ]);
+            
+            $restoredProcurements[] = [
+                'procurement_product_id' => $newProcurement->id,
+                'quantity' => $remainingQuantity
+            ];
+        }
+        
+        return [
+            'restored_procurements' => $restoredProcurements
+        ];
     }
 }

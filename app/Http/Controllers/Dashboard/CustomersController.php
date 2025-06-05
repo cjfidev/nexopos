@@ -19,6 +19,7 @@ use App\Crud\CustomerRewardCrud;
 use App\Exceptions\NotFoundException;
 use App\Http\Controllers\DashboardController;
 use App\Models\Coupon;
+use App\Models\User;
 use App\Models\Customer;
 use App\Models\CustomerCoupon;
 use App\Models\CustomerReward;
@@ -32,6 +33,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
+
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Label\Font\OpenSans;
+use Endroid\QrCode\Label\LabelAlignment;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 class CustomersController extends DashboardController
 {
@@ -469,5 +478,35 @@ class CustomersController extends DashboardController
                 'customer_coupon_id' => $customerCoupon->id,
             ]
         );
+    }
+
+    // print QR Code
+    public function printBarcode($id)
+    {
+        $user = User::findOrFail($id);
+
+        $builder = new Builder(
+            writer: new PngWriter(),
+            writerOptions: [],
+            validateResult: false,
+            data: 'Custom QR code contents',
+            encoding: new Encoding('UTF-8'),
+            errorCorrectionLevel: ErrorCorrectionLevel::High,
+            size: 300,
+            margin: 10,
+            roundBlockSizeMode: RoundBlockSizeMode::Margin,
+            labelText: 'Customer: ' . $user->customer_no,
+            labelFont: new OpenSans(20),
+            labelAlignment: LabelAlignment::Center
+        );
+
+        $result = $builder->build();
+
+        $dataUri = $result->getDataUri();
+
+        return view('prints.qr', [
+            'customer' => $user,
+            'qrImage' => $dataUri
+        ]);
     }
 }
