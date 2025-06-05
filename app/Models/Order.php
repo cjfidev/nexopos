@@ -132,7 +132,7 @@ class Order extends NsModel
 
     public $dispatchesEvents = [
         'created' => OrderAfterCreatedEvent::class,
-        // 'updated' => OrderAfterUpdatedEvent::class,
+        'updated' => OrderAfterUpdatedEvent::class,
     ];
 
     protected $dispatchableFieldsEvents = [
