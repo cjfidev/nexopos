@@ -14,7 +14,7 @@ class CashRegisterCashingFields extends FieldsService
 
     public function get()
     {
-        $accounts = TransactionAccount::whereIn( 'id', ns()->option->get( 'ns_accounting_cashing_accounts', [] ) )->get();
+        $accounts = TransactionAccount::whereNotNull( 'sub_category_id')->get();
 
         $fields = Hook::filter( 'ns-cash-register-cashing-fields', [
             FormInput::hidden(
